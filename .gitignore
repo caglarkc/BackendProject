@@ -1,0 +1,22 @@
+# Node.js Modülleri
+node_modules/
+
+# Çıktı Dosyaları
+dist/
+build/
+
+# Geçici Dosyalar
+*.log
+*.tmp
+
+# IDE ve Editör Dosyaları
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Çevresel Değişken Dosyaları
+.env
+
+# Sistem Dosyaları
+Thumbs.db
