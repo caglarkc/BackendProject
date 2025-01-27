@@ -48,6 +48,12 @@ router.get('/', (req, res) => {
                     },
                     description: "Şifre sıfırlama bağlantısı gönderir"
                 }
+            },
+            refresh: {
+                post: {
+                    url: '/refresh',
+                    description: "Yeni erişim tokenı alır"
+                }
             }
         }
     });
@@ -58,5 +64,6 @@ router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.post('/logout', authController.logout);
 router.post('/forgotPassword', authController.forgotPassword);
+router.post('/refresh', authController.refresh);
 
 module.exports = router;

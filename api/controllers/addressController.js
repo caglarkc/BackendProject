@@ -7,39 +7,25 @@ const authService = require('../../services/authService');
 
 exports.addUserAddress = async (req, res) => {
     try {
-        const { userId,password, addressName, name, surname, phone, countryCode, city, district, neighborhood, street, apartment, floor, door, postal_code, description } = req.body;
+        const {addressName, name, surname, phone, countryCode, city, district, neighborhood, street, apartment, floor, door, postal_code, description } = req.body;
         
-        if(!authService.login(userId, password)) {
-            return res.status(400).json({ error: "Şifre yanlış." });
-        }
-        if(!textUtils.isValidName(addressName)) {
-            return res.status(400).json({ error: "Adres adı en az 2 karakter olmalıdır." });}
-        if(!textUtils.isValidName(name)) {
-            return res.status(400).json({ error: "Ad en az 2 karakter olmalıdır." });}
-        if(!textUtils.isValidName(surname)) {
-            return res.status(400).json({ error: "Soyad en az 2 karakter olmalıdır." });}
-        if(!textUtils.isValidPhoneNumber(phone)) {
-            return res.status(400).json({ error: "Telefon numarası geçersiz." });}
-        if(!textUtils.isValidText(countryCode)) {
-            return res.status(400).json({ error: "Ülke geçersiz." });}
-        if(!textUtils.isValidText(city)) {
-            return res.status(400).json({ error: "Şehir geçersiz." });}
-        if(!textUtils.isValidNumber(floor)) {
-            return res.status(400).json({ error: "Kat numarası geçersiz." });}
-        if(!textUtils.isValidNumber(door)) {
-            return res.status(400).json({ error: "Kapı numarası geçersiz." });}
-        if(!textUtils.isValidNumber(postal_code)) {
-            return res.status(400).json({ error: "Posta kodu geçersiz." });}
-        if(!district || district.trim() === "") {
-            return res.status(400).json({ error: "İlçe boş olamaz." });}
-        if(!neighborhood || neighborhood.trim() === "") {
-            return res.status(400).json({ error: "Mahalle boş olamaz." });}
-        if(!street || street.trim() === "") {
-            return res.status(400).json({ error: "Sokak boş olamaz." });}
-        if(!apartment || apartment.trim() === "") {
-            return res.status(400).json({ error: "Apartman boş olamaz." });}
-        if(!textUtils.isValidText(description) || description.length < 10) {
-            return res.status(400).json({ error: "Açıklama en az 10 karakter olmalıdır." });}
+        const user = await authService.login(req.body);
+        textUtils.validateAddressName(addressName);
+        textUtils.validateName(name);
+        textUtils.validateSurname(surname);
+        textUtils.validatePhone(phone);
+        textUtils.validateText(countryCode);
+        textUtils.validateText(city);
+        textUtils.validateNumber(floor);
+        textUtils.validateNumber(door);
+        textUtils.validateNumber(postal_code);
+        textUtils.validateInput(district);
+        textUtils.validateInput(neighborhood);
+        textUtils.validateInput(street);
+        textUtils.validateInput(apartment);
+        textUtils.validateInput(description);
+
+
         await getCountryCodesMethod();
 
         if(!countryCode) {
@@ -79,7 +65,7 @@ exports.addUserAddress = async (req, res) => {
         }
 
         const address = new Address({
-            userId: userId,
+            userId: user._id,
             addressName: addressName,
             name: name,
             surname: surname,
@@ -99,7 +85,7 @@ exports.addUserAddress = async (req, res) => {
         user.address.push(address._id);
         user.defaultAddress = address._id;
         await user.save();
-        const log = new Log({ userId: user._id, actionType: 'addAddress' });
+        const log = new Log({ objectId: address._id, objectType: 'Address', actionType: 'addAddress', ipAddress: req.ip });
         await log.save();
         res.json({ message: "Adres başarıyla eklendi." });
 
@@ -180,15 +166,11 @@ async function getAllDistrictsByCountryMethod(countryCode) {
 exports.getAllUserAddresses = async (req, res) => {
     try {
         const userId = req.body.userId;
-        if(!userId){
-            return res.status(403).json({ error: "Kullanıcı id gereklidir." });
-        }
+        textUtils.validateUserId(userId);
         const user = await User.findById(userId);
-        if(!user){
-            return res.status(403).json({ error: "Kullanıcı bulunamadı." });
-        }
+        textUtils.validateUser(user);
         const addresses = await Address.find({ userId: userId });
-        const log = new Log({ userId: user._id, actionType: 'getAllUserAddresses' });
+        const log = new Log({ objectId: user._id, objectType: 'User', actionType: 'getAllUserAddresses', ipAddress: req.ip });
         await log.save();
         res.json(addresses);
     } catch (error) {
@@ -199,15 +181,11 @@ exports.getAllUserAddresses = async (req, res) => {
 exports.getUserDefaultAddress = async (req, res) => {
     try {
         const userId = req.body.userId;
+        textUtils.validateUserId(userId);
         const user = await User.findById(userId);
-        if(!userId){
-            return res.status(403).json({ error: "Kullanıcı id gereklidir." });
-        }
-        if(!user){
-            return res.status(403).json({ error: "Kullanıcı bulunamadı." });
-        }
+        textUtils.validateUser(user);
         const address = await Address.findById(user.defaultAddress);
-        const log = new Log({ userId: user._id, actionType: 'getUserDefaultAddress' });
+        const log = new Log({ objectId: user._id, objectType: 'User', actionType: 'getUserDefaultAddress', ipAddress: req.ip });
         await log.save();
         res.json(address);
     } catch (error) {
@@ -220,18 +198,14 @@ exports.deleteUserAddress = async (req, res) => {
         const {userId, addressId} = req.body;
         const address = await Address.findById({userId: userId, addressId: addressId});
         const user = await User.findById(userId);
-        if(!user){
-            return res.status(403).json({ error: "Kullanıcı bulunamadı." });
-        }
-        if(!address) {
-            return res.status(404).json({ error: "Adres bulunamadı." });
-        }
+        textUtils.validateUser(user);
+        textUtils.validateAddress(address);
     
         if(address.userId !== userId) {
-            return res.status(403).json({ error: "Bu adresi silemezsiniz." });
+            throw new AuthError(errorMessages.AUTH.UNAUTHORIZED);
         }
         if(address.userId === user.defaultAddress) {
-            return res.status(403).json({ error: "Varsayılan adresi silemezsiniz." });
+            throw new AuthError(errorMessages.AUTH.UNAUTHORIZED);
         }
         await address.deleteOne();
         user.address = user.address.filter(id => id.toString() !== addressId);
@@ -239,7 +213,7 @@ exports.deleteUserAddress = async (req, res) => {
             user.defaultAddress = null;
         }
         await user.save();
-        const log = new Log({ userId: user._id, actionType: 'deleteUserAddress' });
+        const log = new Log({ objectId: address._id, objectType: 'Address', actionType: 'deleteUserAddress', ipAddress: req.ip });
         await log.save();
         res.json({ message: "Adres başarıyla silindi." });
     } catch (error) {
@@ -250,23 +224,19 @@ exports.deleteUserAddress = async (req, res) => {
 exports.setUserDefaultAddress = async (req, res) => {
     try {
         const {userId, addressId} = req.body;
-        if(!userId || !addressId){
-            return res.status(403).json({ error: "Kullanıcı id ve adres id gereklidir." });
-        }
+        textUtils.validateUserId(userId);
+        textUtils.validateAddressId(addressId);
+
         const user = await User.findById(userId);
-        if(!user){
-            return res.status(403).json({ error: "Kullanıcı bulunamadı." });
-        }
+        textUtils.validateUser(user);
         const address = await Address.findById(addressId);
-        if(!address){
-            return res.status(403).json({ error: "Adres bulunamadı." });
-        }
+        textUtils.validateAddress(address);
         if(address.userId !== userId){
-            return res.status(403).json({ error: "Bu adresi varsayılan adres yapamazsınız." });
+            throw new PermissionError(errorMessages.VALIDATION.INVALID_ADDRESS_ID);
         }
         user.defaultAddress = addressId;
         await user.save();
-        const log = new Log({ userId: user._id, actionType: 'setUserDefaultAddress' });
+        const log = new Log({ objectId: address._id, objectType: 'Address', actionType: 'setUserDefaultAddress', ipAddress: req.ip });
         await log.save();
         res.json({ message: "Varsayılan adres başarıyla değiştirildi." });
     } catch (error) {
@@ -280,19 +250,17 @@ exports.updateUserAddress = async (req, res) => {
         
         // Kullanıcı kontrolü
         if(!authService.login(userId, password)) {
-            return res.status(400).json({ error: "Şifre yanlış." });
+            throw new AuthError(errorMessages.AUTH.WRONG_PASSWORD);
         }
         const user = await User.findById(userId);
 
         // Adres kontrolü
         const address = await Address.findById(addressId);
-        if(!address) {
-            return res.status(404).json({ error: "Adres bulunamadı." });
-        }
+        textUtils.validateAddress(address);
 
         // Adresin kullanıcıya ait olup olmadığı kontrolü
         if(address.userId.toString() !== userId) {
-            return res.status(403).json({ error: "Bu adresi güncelleme yetkiniz yok." });
+            throw new PermissionError(errorMessages.PERMISSION.UNAUTHORIZED);
         }
 
         // Tüm adres bilgilerinin aynı olup olmadığını kontrol et
@@ -313,40 +281,19 @@ exports.updateUserAddress = async (req, res) => {
             address.description === description;
 
         if(isAddressUnchanged) {
-            return res.status(400).json({ error: "Adres bilgileri mevcut bilgilerle aynı. Değişiklik yapılmadı." });
+            throw new ValidationError(errorMessages.VALIDATION.DUPLICATE_INFOS);
         }
 
-        // Validasyonlar
-        if(!textUtils.isValidName(addressName)) {
-            return res.status(400).json({ error: "Adres adı en az 2 karakter olmalıdır." });
-        }
-        if(!textUtils.isValidName(name)) {
-            return res.status(400).json({ error: "Ad en az 2 karakter olmalıdır." });
-        }
-        if(!textUtils.isValidName(surname)) {
-            return res.status(400).json({ error: "Soyad en az 2 karakter olmalıdır." });
-        }
-        if(!textUtils.isValidPhoneNumber(phone)) {
-            return res.status(400).json({ error: "Telefon numarası geçersiz." });
-        }
-        if(!textUtils.isValidNumber(floor)) {
-            return res.status(400).json({ error: "Kat numarası geçersiz." });
-        }
-        if(!textUtils.isValidNumber(door)) {
-            return res.status(400).json({ error: "Kapı numarası geçersiz." });
-        }
-        if(!textUtils.isValidNumber(postal_code)) {
-            return res.status(400).json({ error: "Posta kodu geçersiz." });
-        }
-        if(!street || street.trim() === "") {
-            return res.status(400).json({ error: "Sokak boş olamaz." });
-        }
-        if(!apartment || apartment.trim() === "") {
-            return res.status(400).json({ error: "Apartman boş olamaz." });
-        }
-        if(!textUtils.isValidText(description) || description.length < 10) {
-            return res.status(400).json({ error: "Açıklama en az 10 karakter olmalıdır." });
-        }
+        textUtils.validateAddressName(addressName);
+        textUtils.validateName(name);
+        textUtils.validateSurname(surname);
+        textUtils.validatePhone(phone);
+        textUtils.validateNumber(floor);
+        textUtils.validateNumber(door);
+        textUtils.validateNumber(postal_code);
+        textUtils.validateText(street);
+        textUtils.validateText(apartment);
+        textUtils.validateText(description);
 
         // Lokasyon validasyonları
         await getCountryCodesMethod();
@@ -408,7 +355,7 @@ exports.updateUserAddress = async (req, res) => {
         await address.save();
 
         // Log kaydı
-        const log = new Log({ userId: user._id, actionType: 'updateAddress' });
+        const log = new Log({ objectId: address._id, objectType: 'Address', actionType: 'updateAddress', ipAddress: req.ip });
         await log.save();
 
         res.json({ message: "Adres başarıyla güncellendi.", address });
@@ -421,7 +368,7 @@ exports.updateUserAddress = async (req, res) => {
 exports.getAllAddresses = async (req, res) => {
     try {
         const addresses = await Address.find();
-        const log = new Log({ userId: addresses.userId, actionType: 'getAllAddresses' });
+        const log = new Log({ objectId: addresses._id, objectType: 'Address', actionType: 'getAllAddresses', ipAddress: req.ip });
         await log.save();
         res.json(addresses);
     } catch (error) {
@@ -432,14 +379,10 @@ exports.getAllAddresses = async (req, res) => {
 exports.getAddressById = async (req, res) => {
     try {
         const addressId = req.params.id;
-        if(!addressId){
-            return res.status(403).json({ error: "Adres id gereklidir." });
-        }
+        textUtils.validateAddressId(addressId);
         const address = await Address.findById(addressId);
-        if(!address){
-            return res.status(404).json({ error: "Adres bulunamadı." });
-        }
-        const log = new Log({ userId: address.userId, actionType: 'getAddress' });
+        textUtils.validateAddress(address);
+        const log = new Log({ objectId: addressId, objectType: 'Address', actionType: 'getAddress', ipAddress: req.ip });
         await log.save();
         res.json(address);
     } catch (error) {
@@ -450,13 +393,9 @@ exports.getAddressById = async (req, res) => {
 exports.deleteAddress = async (req, res) => {
     try {
         const addressId = req.params.id;
-        if(!addressId){
-            return res.status(403).json({ error: "Adres id gereklidir." });
-        }
+        textUtils.validateAddressId(addressId);
         const address = await Address.findById(addressId);
-        if(!address){
-            return res.status(404).json({ error: "Adres bulunamadı." });
-        }
+        textUtils.validateAddress(address);
         const user = await User.findById(address.userId);
         user.address = user.address.filter(id => id.toString() !== addressId);
         if(user.defaultAddress === addressId){
@@ -464,7 +403,7 @@ exports.deleteAddress = async (req, res) => {
         }
         await user.save();
         await address.deleteOne();
-        const log = new Log({ userId: user._id, actionType: 'deleteAddress' });
+        const log = new Log({ objectId: addressId, objectType: 'Address', actionType: 'deleteAddress', ipAddress: req.ip });
         await log.save();
         res.json({ message: "Adres başarıyla silindi." });
     } catch (error) {

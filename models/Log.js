@@ -1,14 +1,23 @@
 const mongoose = require('mongoose');
 
 const logSchema = new mongoose.Schema({
-    userId: {
+    objectId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
+        required: true
+    },
+    objectType: {
+        type: String,
+        enum: ['User'],
         required: true
     },
     actionType: {
         type: String,
         required: true    
+    },
+    ipAddress: {
+        type: String,
+        required: true
     },
     createdAt: {
         type: Date,

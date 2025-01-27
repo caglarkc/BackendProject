@@ -1,8 +1,9 @@
 const User = require('../../models/User');
 const Log = require('../../models/Log');
 const textUtils = require('../../utils/textUtils');
-const { hashPassword, comparePassword } = require('../../utils/hashPassword');
-const { ValidationError, AuthError, NotFoundError } = require('../../utils/errors');
+const ValidationError = require('../../utils/errors/ValidationError');
+const AuthError = require('../../utils/errors/AuthError');
+const NotFoundError = require('../../utils/errors/NotFoundError');
 const errorMessages = require('../../config/errorMessages');
 const authService = require('../../services/authService');
 
@@ -55,45 +56,27 @@ exports.getEndpoints = (req, res) => {
                         "password": "123456"
                     }
                 }
+            },
+            refresh: {
+                post: {
+                    url: '/refresh',
+                }
             }
         }
     });
 };
 
-// Register new user
+// Register new user checked
 exports.register = async (req, res) => {
     try {
-        const { name, surname, email, phone, password, confirmPassword } = req.body;
+        const user = await authService.register(req.body);
         
-        if(password !== confirmPassword) {
-            throw new ValidationError(errorMessages.VALIDATION.PASSWORDS_NOT_MATCH);
-        }
-        
-        // Validation checks
-        textUtils.validateName(name);
-        textUtils.validateName(surname);
-        textUtils.validateEmail(email);
-        textUtils.validatePhone(phone);
-        textUtils.validatePassword(password);
-        
-        if(await User.findOne({ email })) {
-            throw new ValidationError(errorMessages.VALIDATION.DUPLICATE_EMAIL);
-        }
-        
-        if(await User.findOne({ phone })) {
-            throw new ValidationError(errorMessages.VALIDATION.DUPLICATE_PHONE);
-        }
-        
-        const user = new User({ 
-            name, 
-            surname, 
-            email, 
-            phone, 
-            password: await hashPassword(password)
+        const log = new Log({ 
+            objectId: user._id, 
+            objectType: 'User', 
+            actionType: 'register', 
+            ipAddress: req.ip 
         });
-        await user.save();
-        
-        const log = new Log({ userId: user._id, actionType: 'register' });
         await log.save();
         
         res.status(201).json(user);
@@ -105,33 +88,31 @@ exports.register = async (req, res) => {
     }
 };
 
-// Login user
+// Login user checked
 exports.login = async (req, res) => {
     try {
-        const { data, password } = req.body;
+        const user = await authService.login(req.body);
         
-        if(!data || !password) {
-            throw new ValidationError(errorMessages.VALIDATION.EMPTY_FIELD);
-        }
-
-        let user;
-        if(data.includes('@')) {
-            user = await User.findOne({ email: data });
-        } else {
-            user = await User.findOne({ phone: data });
-        }
-        
-        if(!user) {
-            throw new AuthError(errorMessages.AUTH.INVALID_CREDENTIALS);
-        }
-        
-        if(!comparePassword(password, user.password)) {
-            throw new AuthError(errorMessages.AUTH.WRONG_PASSWORD);
-        }
-        
-        const log = new Log({ userId: user._id, actionType: 'login' });
+        const log = new Log({ 
+            objectId: user.user._id, 
+            objectType: 'User', 
+            actionType: 'login', 
+            ipAddress: req.ip 
+        });
         await log.save();
+
+        res.cookie('accessToken', user.accessToken, { 
+            httpOnly: true, 
+            secure: process.env.NODE_ENV === 'production', 
+            maxAge: 15 * 60 * 1000 
+        });
+        res.cookie('refreshToken', user.refreshToken, { 
+            httpOnly: true, 
+            secure: process.env.NODE_ENV === 'production', 
+            maxAge: 7 * 24 * 60 * 60 * 1000 
+        });
         
+
         res.status(200).json({ message: "Giriş başarılı.", user });
     } catch (error) {
         if (!(error instanceof AuthError || error instanceof ValidationError)) {
@@ -141,23 +122,26 @@ exports.login = async (req, res) => {
     }
 };
 
-// Logout user
+// Logout user checked
 exports.logout = async (req, res) => {
     try {
-        const { userId } = req.body;
-        
-        if(!userId) {
-            throw new ValidationError(errorMessages.VALIDATION.EMPTY_FIELD);
-        }
-
-        const user = await User.findById(userId);
+        const {email , phone} = req.body;
+        const user = await User.findOne({email: email});
         if(!user) {
-            throw new NotFoundError(errorMessages.NOT_FOUND.USER);
+            user = await User.findOne({phone: phone});
+            if(!user) {
+                throw new NotFoundError(errorMessages.USER.NOT_FOUND);
+            }
         }
 
-        const log = new Log({ userId: user._id, actionType: 'logout' });
+        const log = new Log({ objectId: user._id, objectType: 'User', actionType: 'logout', ipAddress: req.ip });
         await log.save();
-        
+
+        res.clearCookie('accessToken');
+        res.clearCookie('refreshToken');
+        user.refreshToken = null;
+        await user.save();
+
         res.status(200).json({ message: "Çıkış başarılı." });
     } catch (error) {
         if (!(error instanceof NotFoundError || error instanceof ValidationError)) {
@@ -167,36 +151,53 @@ exports.logout = async (req, res) => {
     }
 };
 
-// Forgot password
+// Forgot password checked
 exports.forgotPassword = async (req, res) => {
     try {
-        const { data } = req.body;
+        const { email, phone } = req.body;
         
-        if(!data) {
-            throw new ValidationError(errorMessages.VALIDATION.EMPTY_FIELD);
-        }
-
+        const dataType = textUtils.validateLoginData(email, phone);
+        
         let user;
-        if(data.includes('@')) {
-            user = await User.findOne({ email: data });
+        if(dataType === 'email') {
+            user = await User.findOne({ email: email });
         } else {
-            user = await User.findOne({ phone: data });
+            user = await User.findOne({ phone: phone });
         }
         
-        if(!user) {
-            throw new NotFoundError(errorMessages.NOT_FOUND.USER);
-        }
+        textUtils.validateUser(user);
         
-        const log = new Log({ userId: user._id, actionType: 'forgotPassword' });
+        const log = new Log({ objectId: user._id, objectType: 'User', actionType: 'forgotPassword', ipAddress: req.ip });
         await log.save();
         
-        if(user.email) {
+        if(dataType === 'email') {
             res.status(200).json({ message: "Şifre sıfırlama e-postası gönderildi." });
         } else {
             res.status(200).json({ message: "Şifre sıfırlama SMS gönderildi." });
         }
     } catch (error) {
         if (!(error instanceof NotFoundError || error instanceof ValidationError)) {
+            error = new AuthError(error.message);
+        }
+        res.status(error.statusCode).json({ error: error.message });
+    }
+};
+
+// Refresh token endpoint
+exports.refresh = async (req, res) => {
+    try {
+        const refreshToken = req.cookies.refreshToken;
+        const result = await authService.refresh(refreshToken);
+        
+        res.cookie('accessToken', result.accessToken, { 
+            httpOnly: true, 
+            secure: process.env.NODE_ENV === 'production', 
+            maxAge: 15 * 60 * 1000 
+        });
+
+        res.status(200).json({ message: "Access token yenilendi.", accessToken: result.accessToken });
+    } catch (error) {
+        if (!(error instanceof AuthError)) {
             error = new AuthError(error.message);
         }
         res.status(error.statusCode).json({ error: error.message });

@@ -4,8 +4,11 @@ const textUtils = require('../../utils/textUtils');
 const Seller = require('../../models/Seller');
 const Admin = require('../../models/Admin');
 const authService = require('../../services/authService');
-const { ValidationError, AuthError, NotFoundError } = require('../../utils/errors');
+const ValidationError = require('../../utils/errors/ValidationError');
+const AuthError = require('../../utils/errors/AuthError');
+const NotFoundError = require('../../utils/errors/NotFoundError');
 const errorMessages = require('../../config/errorMessages');
+const { hashPassword, comparePassword } = require('../../utils/hashPassword');
 
 //****************Admin methods****************
 exports.changeRole = async (req, res) => {
@@ -105,29 +108,15 @@ exports.deleteUser = async (req, res) => {
 
 //***************User methods****************
 
+// Change phone number checked
 exports.changePhone = async (req, res) => {
     try {
-        const { userId, password, newPhone } = req.body;
-        
-        if(!userId || !password || !newPhone) {
-            throw new ValidationError(errorMessages.VALIDATION.EMPTY_FIELD);
-        }
-
-        const user = await User.findById(userId);
-        if (!user) {
-            throw new NotFoundError(errorMessages.NOT_FOUND.USER);
-        }
-
-        if (!comparePassword(password, user.password)) {
-            throw new AuthError(errorMessages.AUTH.WRONG_PASSWORD);
-        }
-
+        const newPhone = req.body.newPhone;
         textUtils.validatePhone(newPhone);
 
-        if(user.phone === newPhone) {
-            throw new ValidationError("Yeni telefon numarası eski telefon numarası ile aynı olamaz.");
-        }
+        const user = await authService.login(req.body);
 
+        textUtils.validateDuplicate(user.phone, newPhone, 'Phone');
         const existingPhone = await User.findOne({ phone: newPhone });
         if (existingPhone) {
             throw new ValidationError(errorMessages.VALIDATION.DUPLICATE_PHONE);
@@ -136,7 +125,7 @@ exports.changePhone = async (req, res) => {
         user.phone = newPhone;
         await user.save();
 
-        const log = new Log({ userId: user._id, actionType: 'changePhone' });
+        const log = new Log({ objectId: user._id,objectType: 'User', actionType: 'changePhone', ipAddress: req.ip });
         await log.save();
 
         res.json({ message: "Telefon numarası başarıyla değiştirildi." });
@@ -148,35 +137,24 @@ exports.changePhone = async (req, res) => {
     }
 };
 
+// Change name checked
 exports.changeName = async (req, res) => {
     try {
-        const { userId, password, name, surname } = req.body;
-        
-        if(!userId || !password || !name || !surname) {
-            throw new ValidationError(errorMessages.VALIDATION.EMPTY_FIELD);
-        }
+        const {newName, newSurname } = req.body;
+        const user = await authService.login(req.body);
 
-        const user = await User.findById(userId);
-        if(!user) {
-            throw new NotFoundError(errorMessages.NOT_FOUND.USER);
-        }
+        textUtils.validateName(newName);
+        textUtils.validateName(newSurname);
+        textUtils.validateUser(user);
+        textUtils.validateDuplicateTwo(user.name, user.surname, newName, newSurname, 'Name', 'Surname');
 
-        if(!comparePassword(password, user.password)) {
-            throw new AuthError(errorMessages.AUTH.WRONG_PASSWORD);
-        }
+        console.log(user.name, newName, user.surname, newSurname);
 
-        textUtils.validateName(name);
-        textUtils.validateName(surname);
-
-        if(user.name === name && user.surname === surname) {
-            throw new ValidationError("Yeni ad ve soyad eski ad ve soyad ile aynı olamaz.");
-        }
-
-        user.name = name;
-        user.surname = surname;
+        user.name = newName;
+        user.surname = newSurname;
         await user.save();
 
-        const log = new Log({ userId: user._id, actionType: 'changeName' });
+        const log = new Log({ objectId: user._id, objectType: 'User', actionType: 'changeName', ipAddress: req.ip });
         await log.save();
 
         res.json({ message: "Ad ve soyad başarıyla değiştirildi." });
@@ -187,34 +165,21 @@ exports.changeName = async (req, res) => {
         res.status(error.statusCode).json({ error: error.message });
     }
 };
-
+// Change password checked
 exports.changePassword = async (req, res) => {
     try {
-        const { userId, currentPassword, newPassword } = req.body;
-        
-        if(!userId || !currentPassword || !newPassword) {
-            throw new ValidationError(errorMessages.VALIDATION.EMPTY_FIELD);
-        }
-
-        const user = await User.findById(userId);
-        if (!user) {
-            throw new NotFoundError(errorMessages.NOT_FOUND.USER);
-        }
-
-        if (!comparePassword(currentPassword, user.password)) {
-            throw new AuthError(errorMessages.AUTH.WRONG_PASSWORD);
-        }
+        const {password, newPassword } = req.body;
+        const user = await authService.login(req.body);
 
         textUtils.validatePassword(newPassword);
-
-        if(currentPassword === newPassword) {
-            throw new ValidationError("Yeni şifre eski şifre ile aynı olamaz.");
-        }
+        textUtils.validatePassword(password);
+        textUtils.validateUser(user);
+        textUtils.validateDuplicate(password, newPassword, 'Password');
 
         user.password = await hashPassword(newPassword);
         await user.save();
 
-        const log = new Log({ userId: user._id, actionType: 'changePassword' });
+        const log = new Log({ objectId: user._id, objectType: 'User', actionType: 'changePassword', ipAddress: req.ip });
         await log.save();
 
         res.json({ message: "Şifre başarıyla değiştirildi." });
@@ -225,29 +190,15 @@ exports.changePassword = async (req, res) => {
         res.status(error.statusCode).json({ error: error.message });
     }
 };
-
+// Change email checked
 exports.changeEmail = async (req, res) => {
     try {
-        const { userId, password, newEmail } = req.body;
-
-        if(!userId || !password || !newEmail) {
-            throw new ValidationError(errorMessages.VALIDATION.EMPTY_FIELD);
-        }
-        
-        const user = await User.findById(userId);
-        if (!user) {
-            throw new NotFoundError(errorMessages.NOT_FOUND.USER);
-        }
-
-        if (!comparePassword(password, user.password)) {
-            throw new AuthError(errorMessages.AUTH.WRONG_PASSWORD);
-        }
+        const { newEmail } = req.body;
+        const user = await authService.login(req.body);
 
         textUtils.validateEmail(newEmail);
-
-        if(user.email === newEmail) {
-            throw new ValidationError("Yeni email eski email ile aynı olamaz.");
-        }
+        textUtils.validateUser(user);
+        textUtils.validateDuplicate(user.email, newEmail, 'Email');
 
         const existingEmail = await User.findOne({ email: newEmail });
         if (existingEmail) {
@@ -257,7 +208,7 @@ exports.changeEmail = async (req, res) => {
         user.email = newEmail;
         await user.save();
 
-        const log = new Log({ userId: user._id, actionType: 'changeEmail' });
+        const log = new Log({ objectId: user._id, objectType: 'User', actionType: 'changeEmail', ipAddress: req.ip });
         await log.save();
 
         res.json({ message: "Email başarıyla değiştirildi." });
@@ -269,22 +220,27 @@ exports.changeEmail = async (req, res) => {
     }
 };
 
+// Get profile checked
 exports.getProfile = async (req, res) => {
     try {
-        const { userId, password } = req.body;
-        const user = await authService.login(userId, password);
-        
+        const user = await authService.login(req.body);
+        const log = new Log({ objectId: user._id, objectType: 'User', actionType: 'getProfile', ipAddress: req.ip });
+        await log.save();
+
         res.json(user);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
 
+// Delete profile checked
 exports.deleteProfile = async (req, res) => {
     try {
-        const { userId, password } = req.body;
-        const user = await authService.login(userId, password);
-        await User.findByIdAndDelete(userId);
+        const user = await authService.login(req.body);
+        await User.findByIdAndDelete(user._id);
+
+        const log = new Log({ objectId: user._id, objectType: 'User', actionType: 'deleteProfile', ipAddress: req.ip });
+        await log.save();
 
         res.json({ message: "Kullanıcı başarıyla silindi." });
     } catch (error) {

@@ -2,36 +2,27 @@ const User = require('../models/User');
 const Log = require('../models/Log');
 const textUtils = require('../utils/textUtils');
 const { hashPassword, comparePassword } = require('../utils/hashPassword');
+const ValidationError = require('../utils/errors/ValidationError');
+const AuthError = require('../utils/errors/AuthError');
+const errorMessages = require('../config/errorMessages');
+const { createRefreshToken, createAccessToken, verifyToken } = require('../utils/tokenUtils');
 
 exports.register = async (userData) => {
     const { name, surname, email, phone, password, confirmPassword } = userData;
     
-    if(password !== confirmPassword) {
-        throw new Error("Şifreler eşleşmiyor.");
+    // Validation checks
+    textUtils.validateName(name);
+    textUtils.validateSurname(surname);
+    textUtils.validateEmail(email);
+    textUtils.validatePhone(phone);
+    textUtils.validatePasswordWithConfirmation(password, confirmPassword);
+    
+    if(await User.findOne({ email })) {
+        throw new ValidationError(errorMessages.VALIDATION.DUPLICATE_EMAIL);
     }
     
-    if(!textUtils.isValidName(name) || !textUtils.isValidName(surname)) {
-        throw new Error("Ad ve soyad en az 2 karakter olmalıdır.");
-    }
-    
-    if(!textUtils.isValidEmail(email)) {
-        throw new Error("Email geçersiz.");
-    }
-    
-    if(!textUtils.isValidPhoneNumber(phone)) {
-        throw new Error("Telefon numarası geçersiz.");
-    }
-    
-    if(!textUtils.isValidPassword(password)) {
-        throw new Error("Şifre en az 8 karakter olmalı, bir büyük harf, bir küçük harf ve bir rakam içermeli.");
-    }
-    
-    if(await User.findOne({ email: email })) {
-        throw new Error("Bu email zaten kullanılıyor.");
-    }
-    
-    if(await User.findOne({ phone: phone })) {
-        throw new Error("Bu telefon numarası zaten kullanılıyor.");
+    if(await User.findOne({ phone })) {
+        throw new ValidationError(errorMessages.VALIDATION.DUPLICATE_PHONE);
     }
     
     const user = new User({ 
@@ -43,36 +34,69 @@ exports.register = async (userData) => {
     });
     await user.save();
     
-    const log = new Log({ userId: user._id, actionType: 'register' });
-    await log.save();
-    
     return user;
 };
 
 exports.login = async (loginData) => {
-    const { data, password } = loginData;
-    
-    if(!data || !password) {
-        throw new Error("Email veya telefon numarası, ve şifre gereklidir.");
-    }
+    try {
+        const { email, phone, password } = loginData;
+        
+        // Email veya telefon validasyonu ve sistemde var mı kontrolü
+        const dataType = await textUtils.validateLoginData(email, phone);
+        textUtils.validatePassword(password);
 
-    let user;
-    if(data.includes('@')) {
-        user = await User.findOne({ email: data });
-    } else {
-        user = await User.findOne({ phone: data });
+        // Kullanıcıyı bul
+        const query = dataType === 'email' ? { email } : { phone };
+        const user = await User.findOne(query);
+        
+        // Kullanıcı yoksa hata fırlat
+        textUtils.validateUser(user);
+        
+        // Şifre kontrolü
+        const isPasswordValid = await comparePassword(password, user.password);
+        if(!isPasswordValid) {
+            throw new AuthError(errorMessages.AUTH.WRONG_PASSWORD);
+        }
+
+        const refreshToken = createRefreshToken(user._id);
+        const accessToken = createAccessToken(user._id);
+        
+        // Refresh token'ı veritabanına kaydet ve güncel kullanıcı bilgilerini al
+        const updatedUser = await User.findOneAndUpdate(
+            { _id: user._id },
+            { refreshToken },
+            { new: true }
+        );
+        
+        return { user: updatedUser, accessToken, refreshToken };
+    } catch (error) {
+        throw error;
     }
-    
-    if(!user) {
-        throw new Error("Bu email veya telefon numarası bulunamadı.");
+};
+
+exports.refresh = async (refreshToken) => {
+    try {
+        if (!refreshToken) {
+            throw new AuthError(errorMessages.AUTH.REFRESH_TOKEN_REQUIRED);
+        }
+
+        // Refresh token'ı doğrula
+        const decoded = verifyToken(refreshToken, true);
+        if (!decoded) {
+            throw new AuthError(errorMessages.AUTH.INVALID_REFRESH_TOKEN);
+        }
+
+        // Kullanıcıyı ve token'ı kontrol et
+        const user = await User.findOne({ _id: decoded.userId, refreshToken });
+        if (!user) {
+            throw new AuthError(errorMessages.AUTH.INVALID_REFRESH_TOKEN);
+        }
+
+        // Yeni access token oluştur
+        const accessToken = createAccessToken(user._id);
+        
+        return { accessToken };
+    } catch (error) {
+        throw error;
     }
-    
-    if(!comparePassword(password, user.password)) {
-        throw new Error("Şifre yanlış.");
-    }
-    
-    const log = new Log({ userId: user._id, actionType: 'login' });
-    await log.save();
-    
-    return user;
 };
