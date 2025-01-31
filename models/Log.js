@@ -8,7 +8,7 @@ const logSchema = new mongoose.Schema({
     },
     objectType: {
         type: String,
-        enum: ['User'],
+        enum: ['User', 'IpRateLimit', 'AuthRateLimit', 'ProfileRateLimit'],
         required: true
     },
     actionType: {

@@ -49,5 +49,16 @@ module.exports = {
     },
     PERMISSION: {
         UNAUTHORIZED: "Bu işlem için yetkiniz yok."
+    },
+    RATE_LIMIT: {
+        LOGIN_ATTEMPT_LIMIT: "3 kez yanlış giriş yaptınız. Hesabınız kilitlendi.",
+        WEEKLY_PASSWORD_CHANGE_LIMIT: "Haftalık şifre değiştirme limitine (3) ulaştınız.",
+        WEEKLY_FORGOT_PASSWORD_LIMIT: "Haftalık şifremi unuttum limitine (3) ulaştınız.",
+        DAILY_ADDRESS_LIMIT: "Günlük adres ekleme limitine (3) ulaştınız.",
+        DAILY_PROFILE_INFO_UPDATE_LIMIT: "Günlük profil bilgi güncelleme limitine (3) ulaştınız.",
+        DAILY_PROFILE_LOGIN_UPDATE_LIMIT: "Günlük profil giriş bilgi güncelleme limitine (3) ulaştınız.",
+        HOURLY_REQUEST_LIMIT: "Saatlik istek limitine (100) ulaştınız.",
+        WEEKLY_REGISTRATION_LIMIT: "Haftalık kayıt limitine (10) ulaştınız.",
+        TOO_MANY_REQUESTS: "Çok fazla istek gönderildi."
     }
 }; 
