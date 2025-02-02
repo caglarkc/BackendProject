@@ -27,8 +27,9 @@ const registrationLimitMiddleware = async (req, res, next) => {
 const loginAttemptLimitMiddleware = async (req, res, next) => {
     try {
         const userId = req.userId;
+        const ip = req.ip || req.connection.remoteAddress;
         textUtils.validateUserId(userId);
-        await rateLimitService.checkAndIncrementLoginAttempts(userId);
+        await rateLimitService.checkAndIncrementLoginAttempts(userId, ip);
         next();
     } catch (error) {
         next(error);
@@ -39,8 +40,9 @@ const loginAttemptLimitMiddleware = async (req, res, next) => {
 const passwordChangeLimitMiddleware = async (req, res, next) => {
     try {
         const userId = req.userId; // JWT'den gelen kullanıcı ID'si
+        const ip = req.ip || req.connection.remoteAddress;
         textUtils.validateUserId(userId);
-        await rateLimitService.checkAndIncrementPasswordChange(userId);
+        await rateLimitService.checkAndIncrementPasswordChange(userId, ip);
         next();
     } catch (error) {
         next(error);
@@ -51,8 +53,9 @@ const passwordChangeLimitMiddleware = async (req, res, next) => {
 const forgotPasswordLimitMiddleware = async (req, res, next) => {
     try {
         const userId = req.userId;
+        const ip = req.ip || req.connection.remoteAddress;
         textUtils.validateUserId(userId);
-        await rateLimitService.checkAndIncrementForgotPassword(userId);
+        await rateLimitService.checkAndIncrementForgotPassword(userId, ip);
         next();
     } catch (error) {
         next(error);
@@ -63,8 +66,9 @@ const forgotPasswordLimitMiddleware = async (req, res, next) => {
 const addAddressLimitMiddleware = async (req, res, next) => {
     try {
         const userId = req.userId;
+        const ip = req.ip || req.connection.remoteAddress;
         textUtils.validateUserId(userId);
-        await rateLimitService.checkAndIncrementAddAddress(userId);
+        await rateLimitService.checkAndIncrementAddAddress(userId, ip);
         next();
     } catch (error) {
         next(error);
@@ -75,8 +79,9 @@ const addAddressLimitMiddleware = async (req, res, next) => {
 const profileInfoUpdateLimitMiddleware = async (req, res, next) => {
     try {
         const userId = req.userId;
+        const ip = req.ip || req.connection.remoteAddress;
         textUtils.validateUserId(userId);
-        await rateLimitService.checkAndIncrementProfileInfoUpdate(userId);
+        await rateLimitService.checkAndIncrementProfileInfoUpdate(userId, ip);
         next();
     } catch (error) {
         next(error);
@@ -87,8 +92,9 @@ const profileInfoUpdateLimitMiddleware = async (req, res, next) => {
 const profileLoginUpdateLimitMiddleware = async (req, res, next) => {
     try {
         const userId = req.userId;
+        const ip = req.ip || req.connection.remoteAddress;
         textUtils.validateUserId(userId);
-        await rateLimitService.checkAndIncrementProfileLoginUpdate(userId);
+        await rateLimitService.checkAndIncrementProfileLoginUpdate(userId, ip);
         next();
     } catch (error) {
         next(error);

@@ -6,10 +6,26 @@ const ValidationError = require('../utils/errors/ValidationError');
 const AuthError = require('../utils/errors/AuthError');
 const errorMessages = require('../config/errorMessages');
 const { createRefreshToken, createAccessToken, verifyToken } = require('../utils/tokenUtils');
+const rateLimitMiddleware = require('../middleware/rateLimitMiddleware');
+const { NOW } = require('../utils/constants/time');
+const createLog = require('./logService');
+const NotFoundError = require('../utils/errors/NotFoundError');
+
+// Kullanıcı bilgilerini filtreleme yardımcı metodu
+const _formatUserResponse = (user) => {
+    return {
+        id: user._id,
+        name: user.name,
+        surname: user.surname,
+        email: user.email,
+        phone: user.phone,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+    };
+};
 
 exports.register = async (userData) => {
-    const { name, surname, email, phone, password, confirmPassword } = userData;
-    
+    const { name, surname, email, phone, password, confirmPassword, ip } = userData;
     // Validation checks
     textUtils.validateName(name);
     textUtils.validateSurname(surname);
@@ -24,22 +40,30 @@ exports.register = async (userData) => {
     if(await User.findOne({ phone })) {
         throw new ValidationError(errorMessages.VALIDATION.DUPLICATE_PHONE);
     }
+
+    await rateLimitMiddleware.checkAndIncrementRegistration(ip);
     
-    const user = new User({ 
+    const user = await this.createUser({ 
         name, 
         surname, 
         email, 
         phone, 
-        password: await hashPassword(password)
+        password
     });
-    await user.save();
+
+    await createLog({
+        objectId: user._id,
+        objectType: 'User',
+        actionType: 'register',
+        ipAddress: ip
+    });
     
-    return user;
+    return _formatUserResponse(user);
 };
 
 exports.login = async (loginData) => {
     try {
-        const { email, phone, password } = loginData;
+        const { email, phone, password, ip } = loginData;
         
         // Email veya telefon validasyonu ve sistemde var mı kontrolü
         const dataType = await textUtils.validateLoginData(email, phone);
@@ -67,8 +91,92 @@ exports.login = async (loginData) => {
             { refreshToken },
             { new: true }
         );
+        await createLog({
+            objectId: updatedUser._id,
+            objectType: 'User',
+            actionType: 'login',
+            ipAddress: ip
+        });
         
-        return { user: updatedUser, accessToken, refreshToken };
+        return { 
+            user: _formatUserResponse(updatedUser), 
+            accessToken, 
+            refreshToken 
+        };
+    } catch (error) {
+        throw error;
+    }
+};
+
+exports.logout = async (userData, ip) => {
+    try {
+        // Email veya telefon validasyonu
+        const { email, phone } = userData;
+        const dataType = textUtils.validateLoginData(email, phone);
+        
+        // Kullanıcıyı bul
+        let user;
+        if (dataType === 'email') {
+            user = await User.findOne({ email });
+        } else {
+            user = await User.findOne({ phone });
+        }
+        
+        if (!user) {
+            throw new NotFoundError(errorMessages.USER.NOT_FOUND);
+        }
+
+        // Log oluştur
+        await createLog({
+            objectId: user._id,
+            objectType: 'User',
+            actionType: 'logout',
+            ipAddress: ip
+        });
+
+        // Refresh token'ı temizle
+        user.refreshToken = null;
+        await user.save();
+
+        return { success: true, message: "Çıkış başarılı." };
+    } catch (error) {
+        throw error;
+    }
+};
+
+exports.forgotPassword = async (userData, ip) => {
+    try {
+        const { email, phone } = userData;
+        
+        // Email veya telefon validasyonu
+        const dataType = textUtils.validateLoginData(email, phone);
+        
+        // Kullanıcıyı bul
+        let user;
+        if(dataType === 'email') {
+            user = await User.findOne({ email });
+        } else {
+            user = await User.findOne({ phone });
+        }
+        
+        // Kullanıcı kontrolü
+        textUtils.validateUser(user);
+        
+        // Log oluştur
+        await createLog({
+            objectId: user._id,
+            objectType: 'User',
+            actionType: 'forgotPassword',
+            ipAddress: ip
+        });
+        
+        // Email veya SMS gönderme durumuna göre mesaj döndür
+        return {
+            success: true,
+            message: dataType === 'email' 
+                ? "Şifre sıfırlama e-postası gönderildi."
+                : "Şifre sıfırlama SMS gönderildi."
+        };
     } catch (error) {
         throw error;
     }
@@ -100,3 +208,11 @@ exports.refresh = async (refreshToken) => {
         throw error;
     }
 };
+
+exports.createUser = async (userData) => {
+    const { name, surname, email, phone, password } = userData;
+    const user = new User({ name, surname, email, phone, password: await hashPassword(password) });
+    await user.save();
+    return user;
+};
+

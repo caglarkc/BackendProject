@@ -47,33 +47,30 @@ class RateLimitService {
     }
 
     // Auth Rate Limit İşlemleri
-    async checkAndIncrementLoginAttempts(userId) {
+    async checkAndIncrementLoginAttempts(userId, ip) {
         try {
             const authLimit = await this._findOrCreateLimit(AuthRateLimit, { userId });
             await authLimit.incrementLoginAttempts();
-            const ip = req.ip;
             await this._createLog(userId, 'AuthRateLimit', 'INCREMENT_LOGIN_ATTEMPTS', ip);
         } catch (error) {
             throw error;
         }
     }
 
-    async checkAndIncrementPasswordChange(userId) {
+    async checkAndIncrementPasswordChange(userId, ip) {
         try {
             const authLimit = await this._findOrCreateLimit(AuthRateLimit, { userId });
             await authLimit.incrementPasswordChange();
-            const ip = req.ip;
             await this._createLog(userId, 'AuthRateLimit', 'INCREMENT_PASSWORD_CHANGE', ip);
         } catch (error) {
             throw error;
         }
     }
 
-    async checkAndIncrementForgotPassword(userId) {
+    async checkAndIncrementForgotPassword(userId, ip) {
         try {
             const authLimit = await this._findOrCreateLimit(AuthRateLimit, { userId });
             await authLimit.incrementForgotPassword();
-            const ip = req.ip;
             await this._createLog(userId, 'AuthRateLimit', 'INCREMENT_FORGOT_PASSWORD', ip);
         } catch (error) {
             throw error;
@@ -81,33 +78,30 @@ class RateLimitService {
     }
 
     // Profile Rate Limit İşlemleri
-    async checkAndIncrementAddAddress(userId) {
+    async checkAndIncrementAddAddress(userId, ip) {
         try {
             const profileLimit = await this._findOrCreateLimit(ProfileRateLimit, { userId });
             await profileLimit.incerementAddAddress();
-            const ip = req.ip;
             await this._createLog(userId, 'ProfileRateLimit', 'INCREMENT_ADD_ADDRESS', ip);
         } catch (error) {
             throw error;
         }
     }
 
-    async checkAndIncrementProfileInfoUpdate(userId) {
+    async checkAndIncrementProfileInfoUpdate(userId, ip) {
         try {
             const profileLimit = await this._findOrCreateLimit(ProfileRateLimit, { userId });
             await profileLimit.incrementProfileInfoUpdate();
-            const ip = req.ip;
             await this._createLog(userId, 'ProfileRateLimit', 'INCREMENT_PROFILE_INFO_UPDATE', ip);
         } catch (error) {
             throw error;
         }
     }
 
-    async checkAndIncrementProfileLoginUpdate(userId) {
+    async checkAndIncrementProfileLoginUpdate(userId, ip) {
         try {
             const profileLimit = await this._findOrCreateLimit(ProfileRateLimit, { userId });
             await profileLimit.incrementProfileLoginUpdate();
-            const ip = req.ip;
             await this._createLog(userId, 'ProfileRateLimit', 'INCREMENT_PROFILE_LOGIN_UPDATE', ip);
         } catch (error) {
             throw error;

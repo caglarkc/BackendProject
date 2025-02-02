@@ -1,5 +1,15 @@
 module.exports = {
     VALIDATION: {
+        COUNTRY_CODE_REQUIRED: "Ülke kodu gerekli.",
+        INVALID_CITY: "Geçersiz şehir.",
+        INVALID_DISTRICT: "Geçersiz ilçe.",
+        INVALID_NEIGHBORHOOD: "Geçersiz mahalle.",
+        INVALID_STREET: "Geçersiz sokak.",
+        INVALID_APARTMENT: "Geçersiz daire.",
+        INVALID_FLOOR: "Geçersiz kat.",
+        INVALID_DOOR: "Geçersiz kapı.",
+        INVALID_POSTAL_CODE: "Geçersiz posta kodu.",
+        INVALID_DESCRIPTION: "Açıklama en fazla 500 karakter olmalıdır.",
         EMPTY_FIELD: "Bu alan boş bırakılamaz.",
         EMPTY_FIELD_WITH_TYPE: "{type} alanı boş bırakılamaz.",
         INVALID_PHONE: "Geçersiz telefon numarası. 10 haneli olmalıdır.",
@@ -19,15 +29,26 @@ module.exports = {
         DUPLICATE_EMAIL: "Bu email zaten kullanılıyor.",
         DUPLICATE_PHONE: "Bu telefon numarası zaten kullanılıyor.",
         DUPLICATE_INFOS: "{type} bilgileri aynı.",
+        DUPLICATE_ADDRESS: "Bu adreste zaten kayıtlı.",
         INVALID_LOGIN_DATA: "Lütfen email veya telefon numarasından sadece birini giriniz.",
         MATCH_NOT_FOUND: "Bilgiler eşleşmiyor.",
         EMAIL_NOT_REGISTERED: "Email sistemde kayıtlı değil.",
-        PHONE_NOT_REGISTERED: "Telefon numarası sistemde kayıtlı değil."
+        PHONE_NOT_REGISTERED: "Telefon numarası sistemde kayıtlı değil.",
+        CITY_ERROR: "Şehir bulunamadı.",
+        DISTRICT_ERROR: "İlçe bulunamadı.",
+        NEIGHBORHOOD_ERROR: "Mahalle bulunamadı.",
+        INVALID_INPUT_TYPE: "Geçersiz giriş tipi.",
+        CANNOT_DELETE_DEFAULT: "Varsayılan adres silinemez.",
+        NO_DEFAULT_ADDRESS: "Varsayılan adres bulunamadı.",
+        LOCATION_DATA_REQUIRED: "Lütfen tüm konum verilerini giriniz.",
+        NO_CHANGES_MADE: "Değişiklik yapılmamış."
     },
+
     AUTH: {
         INVALID_CREDENTIALS: "Email veya şifre hatalı.",
         UNAUTHORIZED: "Bu işlem için yetkiniz yok.",
         TOKEN_EXPIRED: "Oturum süresi doldu.",
+        TOKEN_MISSING: "Token bulunamadı.",
         TOKEN_INVALID: "Geçersiz token.",
         USER_NOT_FOUND: "Kullanıcı bulunamadı.",
         WRONG_PASSWORD: "Şifre yanlış.",
@@ -45,12 +66,14 @@ module.exports = {
         CONNECTION_ERROR: "Veritabanı bağlantı hatası.",
         QUERY_ERROR: "Veritabanı sorgu hatası.",
         DUPLICATE_KEY: "Bu kayıt zaten mevcut.",
-        VALIDATION_ERROR: "Veritabanı doğrulama hatası."
+        VALIDATION_ERROR: "Veritabanı doğrulama hatası.",
+        TRANSACTION_ERROR: "İşlem hatası."
     },
     PERMISSION: {
         UNAUTHORIZED: "Bu işlem için yetkiniz yok."
     },
     RATE_LIMIT: {
+        REMAINING_ATTEMPTS: "Kalan deneme hakkınız: {count}",
         LOGIN_ATTEMPT_LIMIT: "3 kez yanlış giriş yaptınız. Hesabınız kilitlendi.",
         WEEKLY_PASSWORD_CHANGE_LIMIT: "Haftalık şifre değiştirme limitine (3) ulaştınız.",
         WEEKLY_FORGOT_PASSWORD_LIMIT: "Haftalık şifremi unuttum limitine (3) ulaştınız.",

@@ -1,10 +1,11 @@
+// utils/errors/DatabaseError.js
 const AppError = require('./AppError');
 
 class DatabaseError extends AppError {
-    constructor(message) {
-        super(message, 500);
+    constructor(message, details = null) {
+        super(message, 500, details);
         this.name = 'DatabaseError';
     }
 }
 
-module.exports = DatabaseError; 
+module.exports = DatabaseError;

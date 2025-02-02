@@ -1,4 +1,5 @@
 const ValidationError = require('./errors/ValidationError');
+const NotFoundError = require('./errors/NotFoundError');
 const errorMessages = require('../config/errorMessages');
 const User = require('../models/User');
 
@@ -149,13 +150,13 @@ const validateUserRole = (role) => {
 
 const validateUser = (user) => {
     if(!user) {
-        throw new ValidationError(errorMessages.VALIDATION.INVALID_USER);
+        throw new NotFoundError(errorMessages.NOT_FOUND.USER);
     }
 };
 
 const validateAddress = (address) => {
     if(!address) {
-        throw new ValidationError(errorMessages.VALIDATION.INVALID_ADDRESS);
+        throw new NotFoundError(errorMessages.NOT_FOUND.ADDRESS);
     }
 };
 
@@ -207,9 +208,61 @@ const validateDuplicateTwo = (data1a, data1b, data2a, data2b, type1, type2) => {
     }
 };
 
-const validateInput = (input) => {
+
+const validateInput = (input, type = null) => {
+    // Her durumda boşluk kontrolü yap
     if(!input || input.trim() === "") {
-        throw new ValidationError(errorMessages.VALIDATION.EMPTY_FIELD);
+        throw new ValidationError(
+            type 
+                ? errorMessages.VALIDATION.EMPTY_FIELD_WITH_TYPE 
+                : errorMessages.VALIDATION.EMPTY_FIELD,
+            type ? { type } : undefined
+        );
+    }
+
+    // Eğer type belirtilmemişse sadece boşluk kontrolü yeterli
+    if (!type) return;
+
+    // Type belirtilmişse ileri validasyonlar
+    switch(type.toLowerCase()) {
+        case 'street':
+            if(input.length < 2 || input.length > 100) {
+                throw new ValidationError(errorMessages.VALIDATION.INVALID_STREET);
+            }
+            break;
+        
+        case 'apartment':
+            if(input.length < 1 || input.length > 50) {
+                throw new ValidationError(errorMessages.VALIDATION.INVALID_APARTMENT);
+            }
+            break;
+            
+        case 'description':
+            if(input.length > 500) {
+                throw new ValidationError(errorMessages.VALIDATION.INVALID_DESCRIPTION);
+            }
+            break;
+
+        case 'floor':
+            if(!isValidNumber(input) || input < -5 || input > 200) {
+                throw new ValidationError(errorMessages.VALIDATION.INVALID_FLOOR);
+            }
+            break;
+
+        case 'door':
+            if(!isValidNumber(input) || input < 1 || input > 1000) {
+                throw new ValidationError(errorMessages.VALIDATION.INVALID_DOOR);
+            }
+            break;
+
+        case 'postal_code':
+            if(!isValidNumber(input) || input.length !== 5) {
+                throw new ValidationError(errorMessages.VALIDATION.INVALID_POSTAL_CODE);
+            }
+            break;
+
+        default:
+            throw new ValidationError(errorMessages.VALIDATION.INVALID_INPUT_TYPE);
     }
 };
 

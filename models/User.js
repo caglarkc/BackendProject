@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: null
     },
-    address: [{
+    addresses: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Address'  
     }],

@@ -69,15 +69,8 @@ exports.getEndpoints = (req, res) => {
 // Register new user checked
 exports.register = async (req, res) => {
     try {
-        const user = await authService.register(req.body);
-        
-        const log = new Log({ 
-            objectId: user._id, 
-            objectType: 'User', 
-            actionType: 'register', 
-            ipAddress: req.ip 
-        });
-        await log.save();
+        const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+        const user = await authService.register(req.body, ip);
         
         res.status(201).json(user);
     } catch (error) {
@@ -91,16 +84,9 @@ exports.register = async (req, res) => {
 // Login user checked
 exports.login = async (req, res) => {
     try {
-        const user = await authService.login(req.body);
+        const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+        const user = await authService.login(req.body, ip);
         
-        const log = new Log({ 
-            objectId: user.user._id, 
-            objectType: 'User', 
-            actionType: 'login', 
-            ipAddress: req.ip 
-        });
-        await log.save();
-
         res.cookie('accessToken', user.accessToken, { 
             httpOnly: true, 
             secure: process.env.NODE_ENV === 'production', 
@@ -125,24 +111,14 @@ exports.login = async (req, res) => {
 // Logout user checked
 exports.logout = async (req, res) => {
     try {
-        const {email , phone} = req.body;
-        const user = await User.findOne({email: email});
-        if(!user) {
-            user = await User.findOne({phone: phone});
-            if(!user) {
-                throw new NotFoundError(errorMessages.USER.NOT_FOUND);
-            }
-        }
+        const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+        const result = await authService.logout(req.body, ip);
 
-        const log = new Log({ objectId: user._id, objectType: 'User', actionType: 'logout', ipAddress: req.ip });
-        await log.save();
-
+        // HTTP'ye özgü işlemler controller'da
         res.clearCookie('accessToken');
         res.clearCookie('refreshToken');
-        user.refreshToken = null;
-        await user.save();
 
-        res.status(200).json({ message: "Çıkış başarılı." });
+        res.status(200).json(result);
     } catch (error) {
         if (!(error instanceof NotFoundError || error instanceof ValidationError)) {
             error = new AuthError(error.message);
@@ -154,27 +130,10 @@ exports.logout = async (req, res) => {
 // Forgot password checked
 exports.forgotPassword = async (req, res) => {
     try {
-        const { email, phone } = req.body;
+        const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+        const result = await authService.forgotPassword(req.body, ip);
         
-        const dataType = textUtils.validateLoginData(email, phone);
-        
-        let user;
-        if(dataType === 'email') {
-            user = await User.findOne({ email: email });
-        } else {
-            user = await User.findOne({ phone: phone });
-        }
-        
-        textUtils.validateUser(user);
-        
-        const log = new Log({ objectId: user._id, objectType: 'User', actionType: 'forgotPassword', ipAddress: req.ip });
-        await log.save();
-        
-        if(dataType === 'email') {
-            res.status(200).json({ message: "Şifre sıfırlama e-postası gönderildi." });
-        } else {
-            res.status(200).json({ message: "Şifre sıfırlama SMS gönderildi." });
-        }
+        res.status(200).json(result);
     } catch (error) {
         if (!(error instanceof NotFoundError || error instanceof ValidationError)) {
             error = new AuthError(error.message);

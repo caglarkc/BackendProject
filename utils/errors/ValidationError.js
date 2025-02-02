@@ -1,13 +1,11 @@
+// utils/errors/ValidationError.js
 const AppError = require('./AppError');
 
 class ValidationError extends AppError {
-    constructor(message, params = {}) {
-        // Template değerlerini işle
-        const processedMessage = message.replace(/\{(\w+)\}/g, (match, key) => params[key] || match);
-        super(processedMessage, 400);
+    constructor(message, details = null) {
+        super(message, 400, details);
         this.name = 'ValidationError';
-        this.params = params;
     }
 }
 
-module.exports = ValidationError; 
+module.exports = ValidationError;
