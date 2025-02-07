@@ -1,16 +1,16 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
-
+const { requestContextMiddleware } = require('./middleware/requestContext');
 // Environment variables
 dotenv.config();
 
 // Import routes
-const authenticationRoute = require('./api/routes/authenticationRoute');
+const authRoute = require('./api/routes/authRoute');
 const userRoute = require('./api/routes/userRoute');
 const logRoute = require('./api/routes/logRoute');
 const adminRoute = require('./api/routes/adminRoute');
-
+    
 // Express app
 const app = express();
 
@@ -24,7 +24,7 @@ mongoose.connect(process.env.MONGODB_URI)
 .catch((err) => console.error('MongoDB bağlantı hatası:', err));
 
 // Routes
-app.use('/api/auth', authenticationRoute);
+app.use('/api/auth', authRoute);
 app.use('/api/users', userRoute);
 app.use('/api/logs', logRoute);
 app.use('/api/admin', adminRoute);
@@ -47,10 +47,24 @@ app.get('/', (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(err.status || 500).json({
+    
+    // ValidationError için 400 status code
+    if (err.name === 'ValidationError') {
+        return res.status(400).json({
+            error: {
+                message: err.message,
+                status: 400,
+                timestamp: new Date().toISOString()
+            }
+        });
+    }
+    
+    // Diğer hatalar için
+    const statusCode = err.status || 500;
+    res.status(statusCode).json({
         error: {
             message: err.message || 'Internal Server Error',
-            status: err.status || 500,
+            status: statusCode,
             timestamp: new Date().toISOString()
         }
     });

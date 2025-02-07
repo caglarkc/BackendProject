@@ -1,6 +1,4 @@
 const bcrypt = require('bcrypt');
-const AuthError = require('./errors/AuthError');
-const errorMessages = require('../config/errorMessages');
 
 const hashPassword = async (password) => {
     return await bcrypt.hash(password, 10);

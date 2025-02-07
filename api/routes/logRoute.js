@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const logController = require('../controllers/logController');
+const LogController = require('../controllers/LogController');
 
 // Ana sayfa - GET
 router.get('/', (req, res) => {
@@ -18,6 +18,6 @@ router.get('/', (req, res) => {
 });
 
 // Log routes - POST
-router.post('/all', logController.getAllLogs);
+router.post('/all', LogController.getAllLogs);
 
 module.exports = router;

@@ -1,7 +1,9 @@
 const ValidationError = require('../utils/errors/ValidationError');
 const errorMessages = require('../config/errorMessages');
+const BaseService = require('./BaseService');
 
-class LocationService {
+class LocationService extends BaseService {
+    
     async getCountryCodes() {
         try {
             // Burada gerçek API çağrısı yapılacak

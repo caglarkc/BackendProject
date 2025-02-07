@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const adminController = require('../controllers/adminController');
-const addressController = require('../controllers/addressController');
-const userController = require('../controllers/userController');
+const AddressController = require('../controllers/AddressController');
+const UserController = require('../controllers/UserController');
 
 //Ana sayfa
 router.get('/' , (req, res) => {
@@ -130,12 +129,12 @@ router.get('/' , (req, res) => {
     });
 });
 
-router.post('/getUser', userController.getUser);
-router.post('/deleteUser', userController.deleteUser);
-router.post('/getAllUsers', userController.getAllUsers);
-router.post('/changeRole', userController.changeRole);
-router.post('/getAllAddresses', addressController.getAllAddresses);
-router.post('/getAddressById', addressController.getAddressById);
-router.post('/deleteAddress', addressController.deleteAddress);
+router.post('/getUser', UserController.getUser);
+router.post('/deleteUser', UserController.deleteUser);
+router.post('/getAllUsers', UserController.getAllUsers);
+router.post('/changeRole', UserController.changeRole);
+router.post('/getAllAddresses', AddressController.getAllAddresses);
+router.post('/getAddressById', AddressController.getAddressById);
+router.post('/deleteAddress', AddressController.deleteAddress);
 
 module.exports = router;

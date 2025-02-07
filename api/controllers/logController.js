@@ -1,11 +1,35 @@
-const Log = require('../../models/Log');
+const LogService = require('../../services/LogService');
+const BaseController = require('./BaseController');
 
+
+class LogController extends BaseController {
 // Get all logs
-exports.getAllLogs = async (req, res) => {
-    try {
-        const logs = await Log.find().populate('userId', 'name email phone');
-        res.json(logs);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+    async getAllLogs(req, res, next) {
+        try {
+            const logs = await LogService.getAllLogs();
+            res.json(logs);
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    async createLog(req, res, next) {
+        try {
+            const log = await LogService.createLog(req.body);
+            res.json(log);
+        } catch (error) {
+            next(error);
+        }
     }
-};
+
+    async getAllLogsByUserId(req, res, next) {
+        try {
+            const logs = await LogService.getAllLogsByUserId(req.params.userId);
+            res.json(logs);
+        } catch (error) {
+            next(error);
+        }
+    }
+}
+
+module.exports = new LogController();

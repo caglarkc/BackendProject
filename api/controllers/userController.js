@@ -1,30 +1,22 @@
 const User = require('../../models/User');
-const Log = require('../../models/Log');
 const textUtils = require('../../utils/textUtils');
 const Seller = require('../../models/Seller');
 const Admin = require('../../models/Admin');
-const authService = require('../../services/authService');
 const ValidationError = require('../../utils/errors/ValidationError');
 const AuthError = require('../../utils/errors/AuthError');
 const NotFoundError = require('../../utils/errors/NotFoundError');
 const errorMessages = require('../../config/errorMessages');
 const { hashPassword, comparePassword } = require('../../utils/hashPassword');
 
+
 //****************Admin methods****************
 exports.changeRole = async (req, res) => {
     try {
         const { userId, role } = req.body;
+        textUtils.validateUserId(userId);
         const user = await User.findById(userId);
-
-        if(!userId) {
-            return res.status(400).json({ error: "Kullanıcı ID gereklidir." });
-        }
-        if(!role) {
-            return res.status(400).json({ error: "Rol gereklidir." });
-        }
-        if(!user) {
-            return res.status(404).json({ error: "Kullanıcı bulunamadı." });
-        }
+        textUtils.validateUser(user);
+        textUtils.validateInput(role, 'Role');
 
         // User verilerini kopyala
         const userData = {
@@ -49,8 +41,7 @@ exports.changeRole = async (req, res) => {
         // Sonra user'ı sil
         await User.findByIdAndDelete(userId);
 
-        const log = new Log({ userId: userId, actionType: 'changeRole' });
-        await log.save();
+        await logService.createLog(userId, "User", 'changeRole', req.ip);
         
         res.json({ message: "Rol başarıyla değiştirildi." });
     } catch (error) {

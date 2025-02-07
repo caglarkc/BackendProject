@@ -1,95 +1,96 @@
-const User = require('../../models/User');
-const Log = require('../../models/Log');
-const textUtils = require('../../utils/textUtils');
-const Address = require('../../models/Address');
-const locationMethods = require('../controllers/locationController');
-const addressService = require('../../services/addressService');
+const AddressService = require('../../services/AddressService');
+const BaseController = require('./BaseController');
+class AddressController extends BaseController {
 
-exports.addUserAddress = async (req, res, next) => {
-    try {
-        const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-        const result = await addressService.addAddress(req.body, ip);
-        res.status(201).json(result);
-    } catch (error) {
-        next(error);
+    async addUserAddress(req, res, next) {
+        try {
+            const result = await AddressService.addAddress(req.body);
+            res.status(201).json(result);
+        } catch (error) {
+            next(error);
+        }
     }
-};
 
-
-
-exports.getAllUserAddresses = async (req, res, next) => {
-    try {
-        const addresses = await addressService.getAllAddressesByUserId(req.userId);
-        res.status(200).json(addresses);
-    } catch (error) {
-        next(error);
+    async getAllUserAddresses(req, res, next) {
+        try {
+            const addresses = await AddressService.getAllAddressesByUserId(req.userId);
+            res.status(200).json(addresses);
+        } catch (error) {
+            next(error);
+        }
     }
-};
 
-exports.getUserDefaultAddress = async (req, res, next) => {
-    try {
-        const address = await addressService.getDefaultAddress(req.userId);
-        res.status(200).json(address);
-    } catch (error) {
-        next(error);
+    async getUserDefaultAddress(req, res, next) {
+        try {
+            const address = await AddressService.getDefaultAddress(req.userId);
+            res.status(200).json(address);
+        } catch (error) {
+            next(error);
+        }
+    };
+    
+    async deleteUserAddress(req, res, next) {
+        try {
+            const result = await AddressService.deleteAddressByUserId(req.userId, req.params.addressId);
+            res.status(200).json(result);
+        } catch (error) {
+            next(error);
+        }
+    };
+    
+    async setUserDefaultAddress(req, res, next) {
+        try {
+            const result = await AddressService.setDefaultAddress(req.userId, req.params.addressId);
+            res.status(200).json(result);
+        } catch (error) {
+            next(error);
+        }
+    };
+    
+    async updateUserAddress(req, res, next) {
+        try {
+            const result = await AddressService.updateAddress(req.userId, req.params.addressId, req.body);
+            res.status(200).json(result);
+        } catch (error) {
+            next(error);
+        }
+    };
+    
+    async getAllAddresses(req, res, next) {
+        try {
+            const addresses = await AddressService.getAllAddresses();
+            res.status(200).json(addresses);
+        } catch (error) {
+            next(error);
+        }
     }
-};
+    
+    async getAddressById(req, res, next) {
+        try {
+            const addressId = req.params.id;
+            const address = await AddressService.getAddressById(addressId);
+            res.status(200).json(address);
+        } catch (error) {
+            next(error);
+        }
+    }
+    
+    async deleteAddress(req, res, next) {
+        try {
+            const addressId = req.body.addressId;
+            const result = await AddressService.deleteAddress(addressId);
+            res.status(200).json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
 
-exports.deleteUserAddress = async (req, res) => {
-    try {
-        const result = await addressService.deleteAddressByUserId(req.userId, req.params.addressId);
-        res.status(200).json(result);
-    } catch (error) {
-        next(error);
-    }
-};
-
-exports.setUserDefaultAddress = async (req, res) => {
-    try {
-        const result = await addressService.setDefaultAddress(req.userId, req.params.addressId);
-        res.status(200).json(result);
-    } catch (error) {
-        next(error);
-    }
-};
-
-exports.updateUserAddress = async (req, res) => {
-    try {
-        const result = await addressService.updateAddress(req.userId, req.params.addressId, req.body);
-        res.status(200).json(result);
-    } catch (error) {
-        next(error);
-    }
-};
-
-exports.getAllAddresses = async (req, res) => {
-    try {
-        const addresses = await addressService.getAllAddresses();
-        res.status(200).json(addresses);
-    } catch (error) {
-        next(error);
-    }
 }
 
-exports.getAddressById = async (req, res) => {
-    try {
-        const addressId = req.params.id;
-        const address = await addressService.getAddressById(addressId);
-        res.status(200).json(address);
-    } catch (error) {
-        next(error);
-    }
-}
+module.exports = new AddressController();
 
-exports.deleteAddress = async (req, res) => {
-    try {
-        const addressId = req.body.addressId;
-        const result = await addressService.deleteAddress(addressId);
-        res.status(200).json(result);
-    } catch (error) {
-        next(error);
-    }
-}
+
+
 
 /*
 // Ülke kodlarını getir

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const userController = require('../controllers/userController');
-const addressController = require('../controllers/addressController');
+const UserController = require('../controllers/UserController');
+const AddressController = require('../controllers/AddressController');
 // Ana sayfa - GET
 router.get('/', (req, res) => {
     res.json({
@@ -94,18 +94,18 @@ router.get('/', (req, res) => {
 
 
 // Kullanıcı bilgileri güncelleme - hepsi POST
-router.post('/changePassword', userController.changePassword);
-router.post('/changeEmail', userController.changeEmail);
-router.post('/changePhone', userController.changePhone);
-router.post('/changeName', userController.changeName);
-router.post('/getProfile', userController.getProfile);
-router.post('/deleteProfile', userController.deleteProfile);
+router.post('/changePassword', UserController.changePassword);
+router.post('/changeEmail', UserController.changeEmail);
+router.post('/changePhone', UserController.changePhone);
+router.post('/changeName', UserController.changeName);
+router.post('/getProfile', UserController.getProfile);
+router.post('/deleteProfile', UserController.deleteProfile);
 
-router.post('/addUserAddress', addressController.addUserAddress);
-router.post('/updateUserAddress', addressController.updateUserAddress);
-router.post('/setUserDefaultAddress', addressController.setUserDefaultAddress);
-router.post('/deleteUserAddress', addressController.deleteUserAddress);
-router.post('/getAllUserAddresses', addressController.getAllUserAddresses);
-router.post('/getUserDefaultAddress', addressController.getUserDefaultAddress);
+router.post('/addUserAddress', AddressController.addUserAddress);
+router.post('/updateUserAddress', AddressController.updateUserAddress);
+router.post('/setUserDefaultAddress', AddressController.setUserDefaultAddress);
+router.post('/deleteUserAddress', AddressController.deleteUserAddress);
+router.post('/getAllUserAddresses', AddressController.getAllUserAddresses);
+router.post('/getUserDefaultAddress', AddressController.getUserDefaultAddress);
 
 module.exports = router;

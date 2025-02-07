@@ -1,8 +1,9 @@
 const mongoose = require('mongoose');
+const { createLog } = require('../services/LogService');
 const RateLimitError = require('../utils/errors/RateLimitError');
 const errorMessages = require('../config/errorMessages');
 const { NOW, HOUR_AGO, WEEK_AGO } = require('../utils/constants/time');
-
+const { getRequestContext } = require('../middleware/requestContext');
 
 const IpRateLimitSchema = new mongoose.Schema({
     ip: {
@@ -12,56 +13,76 @@ const IpRateLimitSchema = new mongoose.Schema({
     },
     requests: {
         count: { type: Number, default: 0 },
-        lastReset: { type: Date, default: Date.now }
+        firstRequestAt: { type: Date, default: null }
     },
     registration: {
         count: { type: Number, default: 0 },
-        lastReset: { type: Date, default: Date.now }
+        firstRegistrationAt: { type: Date, default: null }
     },
     // Güvenlik için ek alanlar
     isBlocked: { type: Boolean, default: false },
     blockExpireAt: { type: Date, default: null },
-    blockReason: { type: String, default: null },
-
-    // Kayıt limitleri
-    firstRegistrationAt: { type: Date, default: null },
-
+    blockReason: { type: String, default: null }
 }, { timestamps: true });
 
 // Toplam istek sayısını artırmak için method
 IpRateLimitSchema.methods.incrementRequests = async function() {
-    if (this.totalRequests > 100) {
-        throw new RateLimitError(errorMessages.RATE_LIMIT.HOURLY_REQUEST_LIMIT);
-    }
-    
-    // Eğer son sıfırlama 1 saatten önceyse, sayacı sıfırla
-    if (this.lastResetAt < HOUR_AGO) {
-        this.totalRequests = 1;
-        this.lastResetAt = NOW;
-        throw new RateLimitError(errorMessages.RATE_LIMIT.HOURLY_REQUEST_LIMIT);
-    } else {
-        this.totalRequests += 1;
-        return this.save();
+    const context = getRequestContext();
+    const ip = context.ip;
+
+    // Önce zaman kontrolü yapılmalı
+    if (this.requests.firstRequestAt && this.requests.firstRequestAt < HOUR_AGO) {
+        // 1 saat geçmişse sayacı sıfırla
+        this.requests.count = 1;
+        this.requests.firstRequestAt = NOW();
+        await this.save();
+        return;
     }
 
-    
+    // Eğer ilk istek ise zamanı kaydet
+    if (this.requests.count === 0) {
+        this.requests.firstRequestAt = NOW();
+    }
+
+    // Limit kontrolü (saatlik 100 istek)
+    if (this.requests.count >= 100) {
+        await createLog(ip, 'IP', 'HOURLY_REQUEST_LIMIT_EXCEEDED');
+        throw new RateLimitError(errorMessages.RATE_LIMIT.HOURLY_REQUEST_LIMIT);
+    }
+
+    // Sayacı artır
+    this.requests.count += 1;
+    await this.save();
 };
 
 // Kayıt limitleri
 IpRateLimitSchema.methods.incrementRegistration = async function() {
-    if (this.registrationCount === 10) {
+    const context = getRequestContext();
+    const ip = context.ip;
+
+    // Önce zaman kontrolü yapılmalı
+    if (this.registration.firstRegistrationAt && this.registration.firstRegistrationAt < WEEK_AGO) {
+        // 1 hafta geçmişse sayacı sıfırla
+        this.registration.count = 1;
+        this.registration.firstRegistrationAt = NOW();
+        await this.save();
+        return;
+    }
+
+    // Eğer ilk kayıt ise zamanı kaydet
+    if (this.registration.count === 0) {
+        this.registration.firstRegistrationAt = NOW();
+    }
+
+    // Limit kontrolü (haftalık 10 kayıt)
+    if (this.registration.count >= 10) {
+        await createLog(ip, 'IP', 'WEEKLY_REGISTRATION_LIMIT_EXCEEDED');
         throw new RateLimitError(errorMessages.RATE_LIMIT.WEEKLY_REGISTRATION_LIMIT);
     }
 
-    if (this.firstRegistrationAt < WEEK_AGO) {
-        this.registrationCount = 1;
-        this.firstRegistrationAt = NOW;
-        throw new RateLimitError(errorMessages.RATE_LIMIT.WEEKLY_REGISTRATION_LIMIT);
-    } else {
-        this.registrationCount += 1;
-        return this.save();
-    }
-
+    // Sayacı artır
+    this.registration.count += 1;
+    await this.save();
 };
 
 module.exports = mongoose.model('IpRateLimit', IpRateLimitSchema);

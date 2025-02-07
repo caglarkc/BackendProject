@@ -4,8 +4,7 @@ const ValidationError = require('../utils/errors/ValidationError');
 const AuthError = require('../utils/errors/AuthError');
 const textUtils = require('../utils/textUtils');
 const errorMessages = require('../config/errorMessages');
-const createLog = require('./logService');
-const locationService = require('./locationService');
+const createLog = require('./LogService');
 const { getRequestContext } = require('../middleware/requestContext');
 
 // Adres yanıtını formatlama yardımcı metodu

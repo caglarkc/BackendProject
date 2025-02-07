@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const authController = require('../controllers/authenticationController');
+const AuthController = require('../controllers/AuthController');
 
 // Ana sayfa - GET
 router.get('/', (req, res) => {
@@ -60,10 +60,10 @@ router.get('/', (req, res) => {
 });
 
 // Authentication routes - hepsi POST
-router.post('/register', authController.register);
-router.post('/login', authController.login);
-router.post('/logout', authController.logout);
-router.post('/forgotPassword', authController.forgotPassword);
-router.post('/refresh', authController.refresh);
+router.post('/register', AuthController.register);
+router.post('/login', AuthController.login);
+router.post('/logout', AuthController.logout);
+router.post('/forgotPassword', AuthController.forgotPassword);
+router.post('/refresh', AuthController.refresh);
 
 module.exports = router;
