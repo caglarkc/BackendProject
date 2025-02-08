@@ -2,7 +2,6 @@ const IpRateLimit = require('../models/IpRateLimit');
 const AuthRateLimit = require('../models/AuthRateLimit');
 const ProfileRateLimit = require('../models/ProfileRateLimit');
 const BaseService = require('./BaseService');
-const { getRequestContext } = require('../middleware/requestContext');
 
 class RateLimitService extends BaseService {
 
@@ -18,9 +17,7 @@ class RateLimitService extends BaseService {
     // IP Rate Limit İşlemleri
     async checkAndIncrementIpRequests() {
         try {
-            const context = getRequestContext();
-            const ip = context.ip;
-            const ipLimit = await this._findOrCreateLimit(IpRateLimit, { ip });
+            const ipLimit = await this._findOrCreateLimit(IpRateLimit);
             await ipLimit.incrementRequests();
         } catch (error) {
             throw error;
@@ -29,9 +26,7 @@ class RateLimitService extends BaseService {
 
     async checkAndIncrementRegistration() {
         try {
-            const context = getRequestContext();
-            const ip = context.ip;
-            const ipLimit = await this._findOrCreateLimit(IpRateLimit, { ip });
+            const ipLimit = await this._findOrCreateLimit(IpRateLimit);
             await ipLimit.incrementRegistration();
         } catch (error) {
             throw error;
@@ -41,9 +36,7 @@ class RateLimitService extends BaseService {
     // Auth Rate Limit İşlemleri
     async checkAndIncrementLoginAttempts() {
         try {
-            const context = getRequestContext();
-            const userId = context.userId;
-            const authLimit = await this._findOrCreateLimit(AuthRateLimit, { userId });
+            const authLimit = await this._findOrCreateLimit(AuthRateLimit);
             await authLimit.incrementLoginAttempts();
         } catch (error) {
             throw error;
@@ -52,9 +45,7 @@ class RateLimitService extends BaseService {
 
     async checkAndIncrementPasswordChange() {
         try {
-            const context = getRequestContext();
-            const userId = context.userId;
-            const authLimit = await this._findOrCreateLimit(AuthRateLimit, { userId });
+            const authLimit = await this._findOrCreateLimit(AuthRateLimit);
             await authLimit.incrementPasswordChange();
         } catch (error) {
             throw error;
@@ -63,9 +54,7 @@ class RateLimitService extends BaseService {
 
     async checkAndIncrementForgotPassword() {
         try {
-            const context = getRequestContext();
-            const userId = context.userId;
-            const authLimit = await this._findOrCreateLimit(AuthRateLimit, { userId });
+            const authLimit = await this._findOrCreateLimit(AuthRateLimit);
             await authLimit.incrementForgotPassword();
         } catch (error) {
             throw error;
@@ -75,9 +64,7 @@ class RateLimitService extends BaseService {
     // Profile Rate Limit İşlemleri
     async checkAndIncrementAddAddress() {
         try {
-            const context = getRequestContext();
-            const userId = context.userId;
-            const profileLimit = await this._findOrCreateLimit(ProfileRateLimit, { userId });
+            const profileLimit = await this._findOrCreateLimit(ProfileRateLimit);
             await profileLimit.incerementAddAddress();
         } catch (error) {
             throw error;
@@ -86,9 +73,7 @@ class RateLimitService extends BaseService {
 
     async checkAndIncrementProfileInfoUpdate() {
         try {
-            const context = getRequestContext();
-            const userId = context.userId;
-            const profileLimit = await this._findOrCreateLimit(ProfileRateLimit, { userId });
+            const profileLimit = await this._findOrCreateLimit(ProfileRateLimit);
             await profileLimit.incrementProfileInfoUpdate();
         } catch (error) {
             throw error;
@@ -96,10 +81,8 @@ class RateLimitService extends BaseService {
     }
 
     async checkAndIncrementProfileLoginUpdate() {
-        try {   
-            const context = getRequestContext();
-            const userId = context.userId;
-            const profileLimit = await this._findOrCreateLimit(ProfileRateLimit, { userId });
+        try {
+            const profileLimit = await this._findOrCreateLimit(ProfileRateLimit);
             await profileLimit.incrementProfileLoginUpdate();
         } catch (error) {
             throw error;

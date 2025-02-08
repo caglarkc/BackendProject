@@ -1,6 +1,10 @@
 module.exports = {
     VALIDATION: {
-        COUNTRY_CODE_REQUIRED: "Ülke kodu gerekli.",
+        EMPTY_FIELD_WITH_TYPE: "{type} alanı boş bırakılamaz.",
+
+
+
+        
         INVALID_CITY: "Geçersiz şehir.",
         INVALID_DISTRICT: "Geçersiz ilçe.",
         INVALID_NEIGHBORHOOD: "Geçersiz mahalle.",
@@ -11,7 +15,7 @@ module.exports = {
         INVALID_POSTAL_CODE: "Geçersiz posta kodu.",
         INVALID_DESCRIPTION: "Açıklama en fazla 500 karakter olmalıdır.",
         EMPTY_FIELD: "Bu alan boş bırakılamaz.",
-        EMPTY_FIELD_WITH_TYPE: "{type} alanı boş bırakılamaz.",
+        
         INVALID_PHONE: "Geçersiz telefon numarası. 10 haneli olmalıdır.",
         INVALID_EMAIL: "Geçersiz e-posta adresi.",
         INVALID_NUMBER: "Sadece rakam girilmelidir.",
@@ -45,18 +49,64 @@ module.exports = {
     },
 
     AUTH: {
-        INVALID_CREDENTIALS: "Email veya şifre hatalı.",
+        VALIDATION: {
+            USER_ID: "Kullanıcı id boş olamaz.",
+            PASSWORD: "Şifre boş olamaz.",
+            EMAIL: "Email boş olamaz.",
+            NAME: "İsim boş olamaz.",
+            SURNAME: "Soyisim boş olamaz.",
+            PHONE: "Telefon numarası boş olamaz.",
+
+            INVALID_NAME: "İsim en az 2 karakter olmalı ve sadece harf içermelidir.",
+            INVALID_SURNAME: "Soyisim en az 2 karakter olmalı ve sadece harf içermelidir.",
+            INVALID_PHONE: "Geçersiz telefon numarası. 10 haneli olmalıdır.",
+            INVALID_PASSWORD: "Şifre en az 8 karakter olmalı, bir büyük harf, bir küçük harf ve bir rakam içermelidir.",
+            INVALID_EMAIL: "Geçersiz email adresi.",
+            INVALID_LOGIN_DATA: "Email veya telefon numarası boş olamaz.",
+            INVALID_LOGIN_DATA_BOTH: "Email ve telefon numarasından sadece birini giriniz.",
+
+            INVALID_CREDENTIALS: "Email veya şifre hatalı.",
+            DUPLICATE_INFOS: "{type} bilgileri aynı.",
+            EXISTING_INFOS: "{type} bilgileri sistemde başka bir kullanıcı tarafından kullanılıyor.",
+            PASSWORDS_NOT_MATCH: "Şifreler eşleşmiyor.",
+        },
+        NOT_FOUND: {
+            USER: "Kullanıcı bulunamadı.",
+        },
+        AUTH: {
+            TOKEN_EXPIRED: "Oturum süresi doldu.",
+            TOKEN_BLACKLISTED: "Bu oturum sonlandırılmış.",
+            ALREADY_LOGGED_IN: "Zaten giriş yapılmış durumda.",
+            NOT_LOGGED_IN: "Giriş yapılmamış durumda.",
+            NO_ACTIVE_SESSION: "Aktif oturum bulunamadı.",
+            REFRESH_TOKEN_REQUIRED: "Refresh token gerekli.",
+            INVALID_REFRESH_TOKEN: "Geçersiz veya süresi dolmuş refresh token.",
+
+        },
+        ADDRESS: {
+            COUNTRY_CODE_ERROR: "Ülke kodu hatalı.",
+            COUNTRY_CODE_REQUIRED: "Ülke kodu gerekli.",
+            CITY_ERROR: "Şehir bulunamadı.",
+            CITY_REQUIRED: "Şehir gerekli.",
+            DISTRICT_ERROR: "İlçe bulunamadı.",
+            DISTRICT_REQUIRED: "İlçe gerekli.",
+            NEIGHBORHOOD_ERROR: "Mahalle bulunamadı.",
+            NEIGHBORHOOD_REQUIRED: "Mahalle gerekli.",
+        },
+        
         UNAUTHORIZED: "Bu işlem için yetkiniz yok.",
-        TOKEN_EXPIRED: "Oturum süresi doldu.",
+        
         TOKEN_MISSING: "Token bulunamadı.",
         TOKEN_INVALID: "Geçersiz token.",
+        
         USER_NOT_FOUND: "Kullanıcı bulunamadı.",
-        WRONG_PASSWORD: "Şifre yanlış.",
-        REFRESH_TOKEN_REQUIRED: "Refresh token gerekli.",
-        INVALID_REFRESH_TOKEN: "Geçersiz veya süresi dolmuş refresh token."
+        WRONG_PASSWORD: "Email veya şifre hatalı.",
+        
     },
     NOT_FOUND: {
         USER: "Kullanıcı bulunamadı.",
+
+
         RESOURCE: "İstenen kaynak bulunamadı.",
         ADDRESS: "Adres bulunamadı.",
         ORDER: "Sipariş bulunamadı.",

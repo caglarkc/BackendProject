@@ -15,31 +15,32 @@ class AuthController extends BaseController {
 
 // Login user checked
     async login(req, res, next) {
-    try {
-        const user = await AuthService.login(req.body);
-        
-        res.cookie('accessToken', user.accessToken, { 
-            httpOnly: true, 
-            secure: process.env.NODE_ENV === 'production', 
-            maxAge: 15 * 60 * 1000 
-        });
-        res.cookie('refreshToken', user.refreshToken, { 
-            httpOnly: true, 
-            secure: process.env.NODE_ENV === 'production', 
-            maxAge: 7 * 24 * 60 * 60 * 1000 
-        });
-        
-
-        res.status(200).json({ message: "Giriş başarılı.", user });
-    } catch (error) {
-        next(error);
-    }
-};
+        try {
+            const token = req.cookies.accessToken;
+            const user = await AuthService.login(req.body, token);
+            
+            res.cookie('accessToken', user.accessToken, { 
+                httpOnly: true, 
+                secure: process.env.NODE_ENV === 'production', 
+                maxAge: 15 * 60 * 1000 
+            });
+            res.cookie('refreshToken', user.refreshToken, { 
+                httpOnly: true, 
+                secure: process.env.NODE_ENV === 'production', 
+                maxAge: 7 * 24 * 60 * 60 * 1000 
+            });
+            
+            res.status(200).json({ message: "Giriş başarılı.", user });
+        } catch (error) {
+            next(error);
+        }
+    };
 
 // Logout user checked
     async logout(req, res, next) {
         try {
-            const result = await AuthService.logout(req.body);
+            const token = req.cookies.accessToken;
+            const result = await AuthService.logout(token);
 
         // HTTP'ye özgü işlemler controller'da
         res.clearCookie('accessToken');

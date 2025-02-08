@@ -4,8 +4,8 @@ const ValidationError = require('../utils/errors/ValidationError');
 const AuthError = require('../utils/errors/AuthError');
 const textUtils = require('../utils/textUtils');
 const errorMessages = require('../config/errorMessages');
-const createLog = require('./LogService');
-const { getRequestContext } = require('../middleware/requestContext');
+const { createLog } = require('./LogService');
+const BaseService = require('./BaseService');
 
 // Adres yanıtını formatlama yardımcı metodu
 const _formatAddressResponse = (address) => {
@@ -30,11 +30,7 @@ const _formatAddressResponse = (address) => {
     };
 };
 
-class AddressService {
-    async getIp() {
-        const context = getRequestContext();
-        return context.ip;
-    }
+class AddressService extends BaseService {
 
     async validateLocationData(countryCode, city, district, neighborhood) {
         // Ülke kodu kontrolü
@@ -151,12 +147,7 @@ class AddressService {
         await user.save();
 
         // Log oluştur
-        await createLog({
-            objectId: address._id,
-            objectType: 'Address',
-            actionType: 'addAddress',
-            ipAddress: ip
-        });
+        await createLog(address._id, 'Address', 'ADD_ADDRESS');
 
         return {
             success: true,
@@ -173,12 +164,7 @@ class AddressService {
         const addresses = await Address.find({ userId });
         textUtils.validateAddress(addresses);
 
-        await createLog({
-            objectId: user._id,
-            objectType: 'User',
-            actionType: 'getAllAddressesByUserId',
-            ipAddress: await this.getIp()
-        });
+        await createLog(user._id, 'User', 'GET_ALL_ADDRESSES_BY_USER_ID');
         return addresses.map(address => _formatAddressResponse(address));
     }
 
@@ -189,12 +175,7 @@ class AddressService {
 
         textUtils.validateAddress(user.defaultAddress);
 
-        await createLog({
-            objectId: user._id,
-            objectType: 'User',
-            actionType: 'getDefaultAddress',
-            ipAddress: await this.getIp()
-        });
+        await createLog(user._id, 'User', 'GET_DEFAULT_ADDRESS');
         return _formatAddressResponse(user.defaultAddress);
     }
 
@@ -222,12 +203,7 @@ class AddressService {
         user.addresses = user.addresses.filter(id => id.toString() !== addressId);
         await user.save();
 
-        await createLog({
-            objectId: address._id,
-            objectType: 'Address',
-            actionType: 'deleteAddressByUserId',
-            ipAddress: await this.getIp()
-        });
+        await createLog(address._id, 'Address', 'DELETE_ADDRESS_BY_USER_ID');
 
         return {
             success: true,
@@ -251,12 +227,7 @@ class AddressService {
         user.defaultAddress = addressId;
         await user.save();
 
-        await createLog({
-            objectId: address._id,
-            objectType: 'Address',
-            actionType: 'setDefaultAddress',
-            ipAddress: await this.getIp()
-        });
+        await createLog(address._id, 'Address', 'SET_DEFAULT_ADDRESS');
 
         return {
             success: true,
@@ -332,12 +303,7 @@ class AddressService {
             );
         }
     
-        await createLog({
-            objectId: address._id,
-            objectType: 'Address',
-            actionType: 'updateAddress',
-            ipAddress: await this.getIp()
-        });
+        await createLog(address._id, 'Address', 'UPDATE_ADDRESS');
 
         // Adresi güncelle
         Object.assign(address, updateData);
@@ -353,12 +319,7 @@ class AddressService {
     async getAllAddresses() {
         const addresses = await Address.find();
         textUtils.validateAddress(addresses);
-        await createLog({
-            objectId: addresses._id,
-            objectType: 'Address',
-            actionType: 'getAllAddresses',
-            ipAddress: await this.getIp()
-        });
+        await createLog(addresses._id, 'Address', 'GET_ALL_ADDRESSES');
         return addresses.map(address => _formatAddressResponse(address));
     }
 
@@ -366,12 +327,7 @@ class AddressService {
         textUtils.validateAddressId(addressId);
         const address = await Address.findById(addressId);
         textUtils.validateAddress(address);
-        await createLog({
-            objectId: address._id,
-            objectType: 'Address',
-            actionType: 'getAddressById',
-            ipAddress: await this.getIp()
-        });
+        await createLog(address._id, 'Address', 'GET_ADDRESS_BY_ID');
         return _formatAddressResponse(address);
     }
 
@@ -391,12 +347,7 @@ class AddressService {
         await user.save();
 
         await address.deleteOne();
-        await createLog({
-            objectId: address._id,
-            objectType: 'Address',
-            actionType: 'deleteAddress',
-            ipAddress: await this.getIp()
-        });
+        await createLog(address._id, 'Address', 'DELETE_ADDRESS');
         return {
             success: true,
             message: "Adres başarıyla silindi."

@@ -1,11 +1,10 @@
-const rateLimitService = require('../services/rateLimitService');
+const RateLimitService = require('../services/RateLimitService');
 const textUtils = require('../utils/textUtils');
 
 // Genel istek limiti kontrolü
 const requestLimitMiddleware = async (req, res, next) => {
     try {
-        const ip = req.ip || req.connection.remoteAddress;
-        await rateLimitService.checkAndIncrementIpRequests(ip);
+        await RateLimitService.checkAndIncrementIpRequests();
         next();
     } catch (error) {
         next(error);
@@ -15,8 +14,7 @@ const requestLimitMiddleware = async (req, res, next) => {
 // Kayıt işlemi limiti kontrolü
 const registrationLimitMiddleware = async (req, res, next) => {
     try {
-        const ip = req.ip || req.connection.remoteAddress;
-        await rateLimitService.checkAndIncrementRegistration(ip);
+        await RateLimitService.checkAndIncrementRegistration();
         next();
     } catch (error) {
         next(error);
@@ -26,10 +24,8 @@ const registrationLimitMiddleware = async (req, res, next) => {
 // Login deneme limiti kontrolü
 const loginAttemptLimitMiddleware = async (req, res, next) => {
     try {
-        const userId = req.userId;
-        const ip = req.ip || req.connection.remoteAddress;
         textUtils.validateUserId(userId);
-        await rateLimitService.checkAndIncrementLoginAttempts(userId, ip);
+        await RateLimitService.checkAndIncrementLoginAttempts();
         next();
     } catch (error) {
         next(error);
@@ -39,10 +35,7 @@ const loginAttemptLimitMiddleware = async (req, res, next) => {
 // Şifre değiştirme limiti kontrolü
 const passwordChangeLimitMiddleware = async (req, res, next) => {
     try {
-        const userId = req.userId; // JWT'den gelen kullanıcı ID'si
-        const ip = req.ip || req.connection.remoteAddress;
-        textUtils.validateUserId(userId);
-        await rateLimitService.checkAndIncrementPasswordChange(userId, ip);
+        await RateLimitService.checkAndIncrementPasswordChange();
         next();
     } catch (error) {
         next(error);
@@ -52,10 +45,7 @@ const passwordChangeLimitMiddleware = async (req, res, next) => {
 // Şifremi unuttum limiti kontrolü
 const forgotPasswordLimitMiddleware = async (req, res, next) => {
     try {
-        const userId = req.userId;
-        const ip = req.ip || req.connection.remoteAddress;
-        textUtils.validateUserId(userId);
-        await rateLimitService.checkAndIncrementForgotPassword(userId, ip);
+        await RateLimitService.checkAndIncrementForgotPassword();
         next();
     } catch (error) {
         next(error);
@@ -65,10 +55,7 @@ const forgotPasswordLimitMiddleware = async (req, res, next) => {
 // Adres ekleme limiti kontrolü
 const addAddressLimitMiddleware = async (req, res, next) => {
     try {
-        const userId = req.userId;
-        const ip = req.ip || req.connection.remoteAddress;
-        textUtils.validateUserId(userId);
-        await rateLimitService.checkAndIncrementAddAddress(userId, ip);
+        await RateLimitService.checkAndIncrementAddAddress();
         next();
     } catch (error) {
         next(error);
@@ -78,10 +65,7 @@ const addAddressLimitMiddleware = async (req, res, next) => {
 // Profil bilgi güncelleme limiti kontrolü
 const profileInfoUpdateLimitMiddleware = async (req, res, next) => {
     try {
-        const userId = req.userId;
-        const ip = req.ip || req.connection.remoteAddress;
-        textUtils.validateUserId(userId);
-        await rateLimitService.checkAndIncrementProfileInfoUpdate(userId, ip);
+        await RateLimitService.checkAndIncrementProfileInfoUpdate();
         next();
     } catch (error) {
         next(error);
@@ -91,10 +75,7 @@ const profileInfoUpdateLimitMiddleware = async (req, res, next) => {
 // Profil giriş bilgileri güncelleme limiti kontrolü
 const profileLoginUpdateLimitMiddleware = async (req, res, next) => {
     try {
-        const userId = req.userId;
-        const ip = req.ip || req.connection.remoteAddress;
-        textUtils.validateUserId(userId);
-        await rateLimitService.checkAndIncrementProfileLoginUpdate(userId, ip);
+        await RateLimitService.checkAndIncrementProfileLoginUpdate();
         next();
     } catch (error) {
         next(error);

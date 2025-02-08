@@ -1,14 +1,13 @@
 const User = require('../models/User');
 const textUtils = require('../utils/textUtils');
-const { hashPassword, comparePassword } = require('../utils/hashPassword');
-const ValidationError = require('../utils/errors/ValidationError');
+const { hashPassword, } = require('../utils/hashPassword');
 const AuthError = require('../utils/errors/AuthError');
 const errorMessages = require('../config/errorMessages');
-const { createRefreshToken, createAccessToken, verifyToken } = require('../utils/tokenUtils');
-const rateLimitService = require('../services/RateLimitService');
+
 const { createLog } = require('./LogService');
-const NotFoundError = require('../utils/errors/NotFoundError');
 const BaseService = require('./BaseService');
+const { getRequestContext } = require('../middleware/requestContext');
+const TokenService = require('../services/TokenService');
 
 // Kullanıcı bilgilerini filtreleme yardımcı metodu
 const _formatUserResponse = (user) => {
@@ -23,132 +22,116 @@ const _formatUserResponse = (user) => {
     };
 };
 
-
-
 class AuthService extends BaseService {
     
     async register(userData) {
-        const ip = await this.getIp();
-        const { name, surname, email, phone, password, confirmPassword} = userData;
-        // Validation checks
-        textUtils.validateName(name);
-        textUtils.validateSurname(surname);
-        textUtils.validateEmail(email);
-        textUtils.validatePhone(phone);
-        textUtils.validatePasswordWithConfirmation(password, confirmPassword);
-        
-        if(await User.findOne({ email })) {
-            throw new ValidationError(errorMessages.VALIDATION.DUPLICATE_EMAIL);
-        }
-        
-        if(await User.findOne({ phone })) {
-            throw new ValidationError(errorMessages.VALIDATION.DUPLICATE_PHONE);
-        }
-    
-        await rateLimitService.checkAndIncrementRegistration(ip);
+        await textUtils.validateRegister(userData);
         
         const user = await this.createUser({ 
-            name, 
-            surname, 
-            email, 
-            phone, 
-            password
+            name: userData.name, 
+            surname: userData.surname, 
+            email: userData.email, 
+            phone: userData.phone, 
+            password: userData.password
         });
-    
-        await createLog({
-            objectId: user._id,
-            objectType: 'User',
-            actionType: 'register',
-            ipAddress: ip
-        });
+
+        await createLog(user._id, 'User', 'REGISTER');
         
-        return _formatUserResponse(user);
-    };
+        return {
+            user: _formatUserResponse(user),
+            message: "Kullanıcı başarıyla oluşturuldu."
+        };
+    }
     
-    async login(loginData) {
-        try {
-            const ip = await this.getIp();
-            const { email, phone, password } = loginData;
-            
-            // Email veya telefon validasyonu ve sistemde var mı kontrolü
-            const dataType = await textUtils.validateLoginData(email, phone);
-            textUtils.validatePassword(password);
-    
-            // Kullanıcıyı bul
-            const query = dataType === 'email' ? { email } : { phone };
-            const user = await User.findOne(query);
-            
-            // Kullanıcı yoksa hata fırlat
-            textUtils.validateUser(user);
-            
-            // Şifre kontrolü
-            const isPasswordValid = await comparePassword(password, user.password);
-            if(!isPasswordValid) {
-                throw new AuthError(errorMessages.AUTH.WRONG_PASSWORD);
+    async login(loginData, token = null) {
+        // Token kontrolü
+        if (token) {
+            try {
+                const { decoded } = await TokenService.verifyAndDecodeToken(token);
+                if (decoded) {
+                    throw new AuthError(errorMessages.AUTH.AUTH.ALREADY_LOGGED_IN);
+                }
+            } catch (error) {
+                if (error.message === errorMessages.AUTH.AUTH.ALREADY_LOGGED_IN) {
+                    throw error;
+                }
+                // Token geçersizse devam et
             }
-    
-            const refreshToken = createRefreshToken(user._id);
-            const accessToken = createAccessToken(user._id);
-            
-            // Refresh token'ı veritabanına kaydet ve güncel kullanıcı bilgilerini al
-            const updatedUser = await User.findOneAndUpdate(
-                { _id: user._id },
-                { refreshToken },
-                { new: true }
-            );
-            await createLog({
-                objectId: updatedUser._id,
-                objectType: 'User',
-                actionType: 'login',
-                ipAddress: ip
-            });
-            
-            return { 
-                user: _formatUserResponse(updatedUser), 
-                accessToken, 
-                refreshToken 
-            };
-        } catch (error) {
-            throw error;
         }
-    };
+
+        const user = await textUtils.validateLogin(loginData);
+
+        const { accessToken, refreshToken } = TokenService.createTokenPair(user._id);
+        
+        // Refresh token'ı veritabanına kaydet ve güncel kullanıcı bilgilerini al
+        const updatedUser = await User.findOneAndUpdate(
+            { _id: user._id },
+            { 
+                $set: {
+                    refreshToken,
+                    isLoggedIn: true,
+                    lastLoginAt: new Date()
+                }
+            },
+            { new: true }
+        );
+
+        // RequestContext'e userId'yi kaydet
+        const context = getRequestContext();
+        context.setUserId(user._id);
+        context.setData('userRole', user.role);
+        context.setData('userName', user.name);
+        context.setData('userEmail', user.email);
+        context.setData('userPhone', user.phone);
+
+        await createLog(user._id, 'User', 'LOGIN');
+        
+        return { 
+            user: _formatUserResponse(updatedUser), 
+            accessToken, 
+            refreshToken 
+        };
+    }
     
-    async logout(userData) {
-        try {
-            const ip = await this.getIp();
-            // Email veya telefon validasyonu
-            const { email, phone } = userData;
-            const dataType = textUtils.validateLoginData(email, phone);
-            
-            // Kullanıcıyı bul
-            let user;
-            if (dataType === 'email') {
-                user = await User.findOne({ email });
-            } else {
-                user = await User.findOne({ phone });
-            }
-            
-            if (!user) {
-                throw new NotFoundError(errorMessages.USER.NOT_FOUND);
-            }
-    
-            // Log oluştur
-            await createLog({
-                objectId: user._id,
-                objectType: 'User',
-                actionType: 'logout',
-                ipAddress: ip
-            });
-    
-            // Refresh token'ı temizle
-            user.refreshToken = null;
-            await user.save();
-    
-            return { success: true, message: "Çıkış başarılı." };
-        } catch (error) {
-            throw error;
+    async logout(token) {
+        if (!token) {
+            throw new AuthError(errorMessages.AUTH.TOKEN_MISSING);
         }
-    };
+
+        // Token'ı doğrula ve userId'yi al
+        const { decoded } = await TokenService.verifyAndDecodeToken(token);
+        if (!decoded) {
+            throw new AuthError(errorMessages.AUTH.TOKEN_INVALID);
+        }
+
+        // Kullanıcı validasyonu ve oturum kontrolü
+        const user = await textUtils.validateLogout(decoded.userId);
+
+        // Token'ı blacklist'e ekle
+        await TokenService.blacklistToken(token, user._id, 'LOGOUT');
+
+        // RequestContext'ten kullanıcı bilgilerini temizle
+        const context = getRequestContext();
+        context.setUserId(null);
+        context.setData('userRole', null);
+        context.setData('userName', null);
+        context.setData('userEmail', null);
+        context.setData('userPhone', null);
+
+        // Log oluştur
+        await createLog(user._id, 'User', 'LOGOUT');
+
+        // Refresh token'ı ve diğer oturum bilgilerini temizle
+        await User.findByIdAndUpdate(user._id, {
+            $set: {
+                refreshToken: null,
+                lastLogoutAt: new Date(),
+                isLoggedIn: false
+            }
+        });
+
+        return { success: true, message: "Çıkış başarılı." };
+    }
     
     async forgotPassword(userData) {
         try {
@@ -218,11 +201,17 @@ class AuthService extends BaseService {
     
     async createUser(userData) {
         const { name, surname, email, phone, password } = userData;
-        const user = new User({ name, surname, email, phone, password: await hashPassword(password) });
+        const user = new User({ 
+            name, 
+            surname, 
+            email, 
+            phone, 
+            password: await hashPassword(password) 
+        });
+
         await user.save();
         return user;
-    };
- }
-
+    }
+}
 
 module.exports = new AuthService();

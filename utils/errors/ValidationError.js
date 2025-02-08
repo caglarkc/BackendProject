@@ -1,9 +1,11 @@
 // utils/errors/ValidationError.js
 const AppError = require('./AppError');
+const { formatErrorMessage } = require('../stringUtils');
 
 class ValidationError extends AppError {
     constructor(message, details = null) {
-        super(message, 400, details);
+        const formattedMessage = details ? formatErrorMessage(message, details) : message;
+        super(formattedMessage, 400, details);
         this.name = 'ValidationError';
     }
 }

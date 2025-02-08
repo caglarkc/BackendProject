@@ -1,7 +1,12 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
+const cookieParser = require('cookie-parser');
 const { requestContextMiddleware } = require('./middleware/requestContext');
+const authMiddleware = require('./middleware/authMiddleware');
+const tokenBlacklistMiddleware = require('./middleware/tokenBlacklistMiddleware');
+const { redisClient } = require('./config/redis');
+
 // Environment variables
 dotenv.config();
 
@@ -17,17 +22,39 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(requestContextMiddleware);
-// Database connection
+
+// Database connections
+// MongoDB connection
 mongoose.connect(process.env.MONGODB_URI)
-.then(() => console.log('MongoDB bağlantısı başarılı'))
-.catch((err) => console.error('MongoDB bağlantı hatası:', err));
+    .then(() => console.log('MongoDB bağlantısı başarılı'))
+    .catch((err) => console.error('MongoDB bağlantı hatası:', err));
+
+// Redis connection
+redisClient.on('error', (err) => {
+    console.error('Redis Error:', err);
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+    try {
+        await mongoose.connection.close();
+        await redisClient.disconnect();
+        console.log('Veritabanı bağlantıları kapatıldı');
+        process.exit(0);
+    } catch (err) {
+        console.error('Kapatma sırasında hata:', err);
+        process.exit(1);
+    }
+});
 
 // Routes
 app.use('/api/auth', authRoute);
-app.use('/api/users', userRoute);
-app.use('/api/logs', logRoute);
-app.use('/api/admin', adminRoute);
+// Protected routes
+app.use('/api/users', [tokenBlacklistMiddleware, authMiddleware], userRoute);
+app.use('/api/logs', [tokenBlacklistMiddleware, authMiddleware], logRoute);
+app.use('/api/admin', [tokenBlacklistMiddleware, authMiddleware], adminRoute);
 
 // Ana sayfa
 app.get('/', (req, res) => {
@@ -60,7 +87,7 @@ app.use((err, req, res, next) => {
     }
     
     // Diğer hatalar için
-    const statusCode = err.status || 500;
+    const statusCode = err.statusCode || err.status || 500;
     res.status(statusCode).json({
         error: {
             message: err.message || 'Internal Server Error',
@@ -84,6 +111,13 @@ app.use((req, res) => {
 
 // Server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+
+// Test ortamında değilse server'ı başlat
+if (process.env.NODE_ENV !== 'test') {
+    app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+    });
+}
+
+// Export app for testing
+module.exports = { app };

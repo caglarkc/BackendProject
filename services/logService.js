@@ -11,6 +11,13 @@ class LogService extends BaseService {
         return log;
     };
 
+    async createLogWithDetails(objectId, objectType, actionType, details) {
+        const context = getRequestContext();
+        const log = new Log({ objectId, objectType, actionType, details, ipAddress: context.ip, createdAt: NOW() });
+        await log.save();
+        return log;
+    };
+
     async getAllLogs() {
         const logs = await Log.find().populate('objectId', 'objectType', 'actionType', 'ipAddress', 'createdAt');
         await this.createLog(null, 'System', 'GET_ALL_LOGS');

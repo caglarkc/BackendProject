@@ -1,5 +1,6 @@
 const AddressService = require('../../services/AddressService');
 const BaseController = require('./BaseController');
+
 class AddressController extends BaseController {
 
     async addUserAddress(req, res, next) {

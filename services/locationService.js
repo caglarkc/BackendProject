@@ -9,14 +9,14 @@ class LocationService extends BaseService {
             // Burada gerçek API çağrısı yapılacak
             return ['TR', 'US', 'GB']; // Örnek veri
         } catch (error) {
-            throw new ValidationError(errorMessages.VALIDATION.COUNTRY_CODE_ERROR);
+            throw new ValidationError(errorMessages.AUTH.ADDRESS.COUNTRY_CODE_ERROR);
         }
     }
 
     async getCities(countryCode) {
         try {
             if (!countryCode) {
-                throw new ValidationError(errorMessages.VALIDATION.COUNTRY_CODE_REQUIRED);
+                throw new ValidationError(errorMessages.AUTH.ADDRESS.COUNTRY_CODE_REQUIRED);
             }
             
             // Burada gerçek API çağrısı yapılacak
@@ -26,14 +26,14 @@ class LocationService extends BaseService {
                 { name: 'Izmir' }
             ]; // Örnek veri
         } catch (error) {
-            throw new ValidationError(errorMessages.VALIDATION.CITY_ERROR);
+            throw new ValidationError(errorMessages.AUTH.ADDRESS.CITY_ERROR);
         }
     }
 
     async getDistricts(countryCode, city) {
         try {
             if (!countryCode || !city) {
-                throw new ValidationError(errorMessages.VALIDATION.LOCATION_DATA_REQUIRED);
+                throw new ValidationError(errorMessages.AUTH.ADDRESS.CITY_REQUIRED);
             }
             
             // Burada gerçek API çağrısı yapılacak
@@ -43,14 +43,14 @@ class LocationService extends BaseService {
                 { name: 'Sisli' }
             ]; // Örnek veri
         } catch (error) {
-            throw new ValidationError(errorMessages.VALIDATION.DISTRICT_ERROR);
+            throw new ValidationError(errorMessages.AUTH.ADDRESS.DISTRICT_ERROR);
         }
     }
 
     async getNeighborhoods(countryCode, city, district) {
         try {
             if (!countryCode || !city || !district) {
-                throw new ValidationError(errorMessages.VALIDATION.LOCATION_DATA_REQUIRED);
+                throw new ValidationError(errorMessages.AUTH.ADDRESS.DISTRICT_REQUIRED);
             }
             
             // Burada gerçek API çağrısı yapılacak
@@ -60,14 +60,14 @@ class LocationService extends BaseService {
                 { name: 'Fenerbahce' }
             ]; // Örnek veri
         } catch (error) {
-            throw new ValidationError(errorMessages.VALIDATION.NEIGHBORHOOD_ERROR);
+            throw new ValidationError(errorMessages.AUTH.ADDRESS.NEIGHBORHOOD_ERROR);
         }
     }
 
     async getAllDistrictsByCountry(countryCode) {
         try {
             if (!countryCode) {
-                throw new ValidationError(errorMessages.VALIDATION.COUNTRY_CODE_REQUIRED);
+                throw new ValidationError(errorMessages.AUTH.ADDRESS.COUNTRY_CODE_REQUIRED);
             }
             
             // Burada gerçek API çağrısı yapılacak
@@ -82,7 +82,7 @@ class LocationService extends BaseService {
                 }
             ]; // Örnek veri
         } catch (error) {
-            throw new ValidationError(errorMessages.VALIDATION.DISTRICT_ERROR);
+            throw new ValidationError(errorMessages.AUTH.ADDRESS.DISTRICT_ERROR);
         }
     }
 }

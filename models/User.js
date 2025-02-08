@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 
 const userSchema = new mongoose.Schema({
     name: {
@@ -27,6 +28,18 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: null
     },
+    isLoggedIn: {
+        type: Boolean,
+        default: false
+    },
+    lastLoginAt: {
+        type: Date,
+        default: null
+    },
+    lastLogoutAt: {
+        type: Date,
+        default: null
+    },
     addresses: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Address'  
@@ -36,5 +49,11 @@ const userSchema = new mongoose.Schema({
         ref: 'Address'
     }
 }, { timestamps: true });
+
+userSchema.methods.comparePassword = async function(password) {
+    return await bcrypt.compare(password, this.password);
+};
+
+
 
 module.exports = mongoose.model('User', userSchema);

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const UserController = require('../controllers/UserController');
 const AddressController = require('../controllers/AddressController');
+
 // Ana sayfa - GET
 router.get('/', (req, res) => {
     res.json({
@@ -92,12 +93,12 @@ router.get('/', (req, res) => {
     });
 });
 
-
 // Kullanıcı bilgileri güncelleme - hepsi POST
 router.post('/changePassword', UserController.changePassword);
 router.post('/changeEmail', UserController.changeEmail);
 router.post('/changePhone', UserController.changePhone);
 router.post('/changeName', UserController.changeName);
+router.post('/changeSurname', UserController.changeSurname);
 router.post('/getProfile', UserController.getProfile);
 router.post('/deleteProfile', UserController.deleteProfile);
 
