@@ -2,6 +2,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
+const cors = require('cors');
 const { requestContextMiddleware } = require('./middleware/requestContext');
 const authMiddleware = require('./middleware/authMiddleware');
 const tokenBlacklistMiddleware = require('./middleware/tokenBlacklistMiddleware');
@@ -18,6 +19,14 @@ const adminRoute = require('./api/routes/adminRoute');
     
 // Express app
 const app = express();
+
+// CORS configuration
+app.use(cors({
+    origin: 'http://localhost:3001',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+}));
 
 // Middleware
 app.use(express.json());
